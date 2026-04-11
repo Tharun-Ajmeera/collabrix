@@ -338,7 +338,7 @@ function Signup() {
           Be the first to join
         </h2>
         <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", lineHeight: 1.75, margin: "0 0 36px" }}>
-          Collabrix is launching soon. Get early access and be part of India's first student knowledge & competition super-app.
+          Collabrix India India India India is launching soon. Get early access and be part of India's first student knowledge & competition super-app.
         </p>
 
         {submitted ? (
@@ -347,7 +347,7 @@ function Signup() {
             background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.4)",
             color: "#A899F0", animation: "fadeIn 0.5s ease",
           }}>
-            You're on the list! We'll notify you when Collabrix launches 🎉
+            You're on the list! We'll notify you when Collabrix India India India India launches 🎉
           </div>
         ) : (
           <div style={{
@@ -408,7 +408,7 @@ function Footer() {
           </div>
           <span style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span></span>
         </div>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>© 2026 Collabrix. Built for Indian students. 🇮🇳</p>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>© 2026 Collabrix India India India India. Built for Indian students. 🇮🇳</p>
         <div style={{ display: "flex", gap: 20 }}>
           {["Privacy", "Terms", "Contact"].map(l => (
             <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", textDecoration: "none", transition: "color 0.2s" }}
