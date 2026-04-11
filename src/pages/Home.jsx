@@ -15,7 +15,6 @@ function useInView(threshold = 0.15) {
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", onScroll);
@@ -24,8 +23,7 @@ function Navbar() {
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-      padding: "0 2rem",
-      height: "60px",
+      padding: "0 2rem", height: "60px",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       background: scrolled ? "rgba(8,8,12,0.85)" : "transparent",
       backdropFilter: scrolled ? "blur(16px)" : "none",
@@ -43,7 +41,7 @@ function Navbar() {
           </svg>
         </div>
         <span style={{ fontSize: 18, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px" }}>
-          Collab<span style={{ color: "#8B7CF6" }}>rix</span>
+          Collab<span style={{ color: "#8B7CF6" }}>rix</span> India
         </span>
       </div>
 
@@ -220,11 +218,11 @@ function FeatureCard({ feature, index }) {
     <div ref={ref} style={{
       opacity: inView ? 1 : 0,
       transform: inView ? "translateY(0)" : "translateY(30px)",
-      transition: `all 0.6s ease ${index * 0.08}s`,
       padding: "28px", borderRadius: 16,
       background: hovered ? "rgba(83,64,200,0.12)" : "rgba(255,255,255,0.03)",
       border: hovered ? "1px solid rgba(139,124,246,0.4)" : "1px solid rgba(255,255,255,0.07)",
-      cursor: "default", transition: `opacity 0.6s ease ${index * 0.08}s, transform 0.6s ease ${index * 0.08}s, background 0.3s, border 0.3s`,
+      cursor: "default",
+      transition: `opacity 0.6s ease ${index * 0.08}s, transform 0.6s ease ${index * 0.08}s, background 0.3s, border 0.3s`,
     }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -281,26 +279,20 @@ function HowItWorks() {
           <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 600, color: "#fff", letterSpacing: "-1px", margin: 0 }}>From zero to competing</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
-          {steps.map((s, i) => {
-            const [sRef, sInView] = useInView();
-            return (
-              <div key={s.num} ref={sRef} style={{
-                padding: "28px 24px",
-                background: "rgba(255,255,255,0.02)",
-                borderTop: "1px solid rgba(255,255,255,0.07)",
-                borderBottom: "1px solid rgba(255,255,255,0.07)",
-                borderLeft: i === 0 ? "1px solid rgba(255,255,255,0.07)" : "none",
-                borderRight: "1px solid rgba(255,255,255,0.07)",
-                opacity: sInView ? 1 : 0,
-                transform: sInView ? "translateY(0)" : "translateY(20px)",
-                transition: `all 0.6s ease ${i * 0.1}s`,
-              }}>
-                <div style={{ fontSize: 32, fontWeight: 700, color: "rgba(139,124,246,0.2)", marginBottom: 16, letterSpacing: "-1px" }}>{s.num}</div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#fff", marginBottom: 8 }}>{s.title}</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>{s.desc}</div>
-              </div>
-            );
-          })}
+          {steps.map((s, i) => (
+            <div key={s.num} style={{
+              padding: "28px 24px",
+              background: "rgba(255,255,255,0.02)",
+              borderTop: "1px solid rgba(255,255,255,0.07)",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+              borderLeft: i === 0 ? "1px solid rgba(255,255,255,0.07)" : "none",
+              borderRight: "1px solid rgba(255,255,255,0.07)",
+            }}>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "rgba(139,124,246,0.2)", marginBottom: 16, letterSpacing: "-1px" }}>{s.num}</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: "#fff", marginBottom: 8 }}>{s.title}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>{s.desc}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -338,7 +330,7 @@ function Signup() {
           Be the first to join
         </h2>
         <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", lineHeight: 1.75, margin: "0 0 36px" }}>
-          Collabrix India India India India is launching soon. Get early access and be part of India's first student knowledge & competition super-app.
+          Collabrix India is launching soon. Get early access and be part of India's first student knowledge & competition super-app.
         </p>
 
         {submitted ? (
@@ -347,7 +339,7 @@ function Signup() {
             background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.4)",
             color: "#A899F0", animation: "fadeIn 0.5s ease",
           }}>
-            You're on the list! We'll notify you when Collabrix India India India India launches 🎉
+            You're on the list! We'll notify you when Collabrix India launches 🎉
           </div>
         ) : (
           <div style={{
@@ -406,9 +398,9 @@ function Footer() {
               <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
             </svg>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span></span>
+          <span style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span> India</span>
         </div>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>© 2026 Collabrix India India India India. Built for Indian students. 🇮🇳</p>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>© 2026 Collabrix India. Built for Indian students. 🇮🇳</p>
         <div style={{ display: "flex", gap: 20 }}>
           {["Privacy", "Terms", "Contact"].map(l => (
             <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", textDecoration: "none", transition: "color 0.2s" }}
