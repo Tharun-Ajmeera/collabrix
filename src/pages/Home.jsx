@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 const NAV_LINKS = ["Events", "Find Teammates", "Reels", "About"];
 
@@ -15,6 +16,7 @@ function useInView(threshold = 0.15) {
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", onScroll);
@@ -56,6 +58,16 @@ function Navbar() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <a href="#" style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Log in</a>
+        <button
+          onClick={() => navigate("/profile")}
+          style={{
+            fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none",
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+            padding: "8px 18px", borderRadius: 999, cursor: "pointer", transition: "all 0.2s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+        >My Profile</button>
         <a href="#signup" style={{
           fontSize: 13, fontWeight: 500, color: "#fff", textDecoration: "none",
           padding: "8px 18px", borderRadius: 999,
