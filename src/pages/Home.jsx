@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const NAV_LINKS = ["Events", "Find Teammates", "Reels", "About"];
-
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
@@ -22,6 +20,14 @@ function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const NAV_LINKS = [
+    { label: "Events", path: "/events" },
+    { label: "Find Teammates", path: "/teammates" },
+    { label: "Reels", path: "/reels" },
+    { label: "About", path: "#" },
+  ];
+
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
@@ -32,7 +38,7 @@ function Navbar() {
       borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
       transition: "all 0.4s ease",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
         <div style={{ width: 34, height: 34, borderRadius: 10, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="18" height="18" viewBox="0 0 46 46" fill="none">
             <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
@@ -48,20 +54,23 @@ function Navbar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="nav-links-desktop">
-        {NAV_LINKS.map((l) => (
-          <a key={l} href="#" style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", transition: "color 0.2s" }}
+        {NAV_LINKS.map((link) => (
+          <span
+            key={link.label}
+            onClick={() => navigate(link.path)}
+            style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={e => e.target.style.color = "#fff"}
             onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}
-          >{l}</a>
+          >{link.label}</span>
         ))}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <a href="#" style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Log in</a>
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer" }}>Log in</span>
         <button
           onClick={() => navigate("/profile")}
           style={{
-            fontSize: 13, color: "rgba(255,255,255,0.6)", textDecoration: "none",
+            fontSize: 13, color: "rgba(255,255,255,0.6)",
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
             padding: "8px 18px", borderRadius: 999, cursor: "pointer", transition: "all 0.2s",
           }}
@@ -124,7 +133,6 @@ function Hero() {
       position: "relative",
     }}>
       <FloatingOrbs />
-
       <div style={{
         opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)",
         transition: "all 0.7s ease", transitionDelay: "0.1s",
@@ -136,7 +144,6 @@ function Hero() {
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#8B7CF6", display: "inline-block", animation: "pulse 2s infinite" }} />
         India's student knowledge & competition super-app
       </div>
-
       <h1 style={{
         opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
         transition: "all 0.8s ease", transitionDelay: "0.2s",
@@ -157,7 +164,6 @@ function Hero() {
       }}>
         Compete.
       </h1>
-
       <p style={{
         opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)",
         transition: "all 0.8s ease", transitionDelay: "0.4s",
@@ -167,7 +173,6 @@ function Hero() {
         Find hackathons, build your skill profile, form teams across India,
         and grow through pure knowledge reels — all in one place.
       </p>
-
       <div style={{
         opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)",
         transition: "all 0.8s ease", transitionDelay: "0.5s",
@@ -183,9 +188,7 @@ function Hero() {
         }}
           onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 40px rgba(83,64,200,0.5)"; }}
           onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 30px rgba(83,64,200,0.3)"; }}
-        >
-          Get early access →
-        </a>
+        >Get early access →</a>
         <a href="#features" style={{
           padding: "13px 28px", borderRadius: 999, fontSize: 14, fontWeight: 500,
           color: "rgba(255,255,255,0.6)", textDecoration: "none",
@@ -194,11 +197,8 @@ function Hero() {
         }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-        >
-          See how it works
-        </a>
+        >See how it works</a>
       </div>
-
       <div style={{
         opacity: visible ? 1 : 0, transition: "opacity 0.8s ease", transitionDelay: "0.7s",
         display: "flex", gap: 32, marginTop: 48, flexWrap: "wrap", justifyContent: "center",
@@ -316,7 +316,6 @@ function Signup() {
   const [submitted, setSubmitted] = useState(false);
   const [focused, setFocused] = useState(false);
   const [ref, inView] = useInView();
-
   return (
     <section id="signup" style={{ padding: "100px 24px", textAlign: "center" }}>
       <div ref={ref} style={{
@@ -337,14 +336,12 @@ function Signup() {
             <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#8B7CF6" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
           </svg>
         </div>
-
         <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 600, color: "#fff", letterSpacing: "-1px", margin: "0 0 16px" }}>
           Be the first to join
         </h2>
         <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", lineHeight: 1.75, margin: "0 0 36px" }}>
           Collabrix India is launching soon. Get early access and be part of India's first student knowledge & competition super-app.
         </p>
-
         {submitted ? (
           <div style={{
             padding: "16px 24px", borderRadius: 12, fontSize: 14, fontWeight: 500,
@@ -370,10 +367,7 @@ function Signup() {
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               onKeyDown={e => e.key === "Enter" && email.includes("@") && setSubmitted(true)}
-              style={{
-                flex: 1, background: "transparent", border: "none", outline: "none",
-                fontSize: 14, color: "#fff", minWidth: 0,
-              }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", minWidth: 0 }}
             />
             <button
               onClick={() => email.includes("@") && setSubmitted(true)}
@@ -385,9 +379,7 @@ function Signup() {
               }}
               onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-            >
-              Get early access
-            </button>
+            >Get early access</button>
           </div>
         )}
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", marginTop: 14 }}>No spam. Just your launch notification.</p>
