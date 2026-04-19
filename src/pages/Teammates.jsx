@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../useAuth";
 
 const STUDENTS = [
   {
@@ -145,6 +146,7 @@ const SKILLS_LIST = ["All", "React", "Python", "Node.js", "Flutter", "Figma", "S
 
 export default function Teammates() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("All");
   const [domain, setDomain] = useState("All");
@@ -164,8 +166,12 @@ export default function Teammates() {
   });
 
   const toggleConnect = (id) => {
-    setConnected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
-  };
+        if (!user) {
+        navigate("/login");
+        return;
+        }
+        setConnected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+    };
 
   return (
     <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'Inter', sans-serif" }}>

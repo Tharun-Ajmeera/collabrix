@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../useAuth";
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
@@ -15,6 +16,8 @@ function useInView(threshold = 0.15) {
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", onScroll);
@@ -38,6 +41,8 @@ function Navbar() {
       borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
       transition: "all 0.4s ease",
     }}>
+
+      {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
         <div style={{ width: 34, height: 34, borderRadius: 10, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="18" height="18" viewBox="0 0 46 46" fill="none">
@@ -53,6 +58,7 @@ function Navbar() {
         </span>
       </div>
 
+      {/* Nav Links */}
       <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="nav-links-desktop">
         {NAV_LINKS.map((link) => (
           <span
@@ -65,28 +71,52 @@ function Navbar() {
         ))}
       </div>
 
+      {/* Right Side — Auth */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer" }}>Log in</span>
-        <button
-          onClick={() => navigate("/profile")}
-          style={{
-            fontSize: 13, color: "rgba(255,255,255,0.6)",
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            padding: "8px 18px", borderRadius: 999, cursor: "pointer", transition: "all 0.2s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-        >My Profile</button>
-        <a href="#signup" style={{
-          fontSize: 13, fontWeight: 500, color: "#fff", textDecoration: "none",
-          padding: "8px 18px", borderRadius: 999,
-          background: "linear-gradient(135deg, #5340C8, #7B6EE0)",
-          border: "1px solid rgba(139,124,246,0.4)",
-          transition: "opacity 0.2s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-        >Get early access</a>
+        {user ? (
+          <>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
+              {user.displayName?.split(" ")[0]}
+            </span>
+            <img
+              src={user.photoURL}
+              alt={user.displayName}
+              onClick={() => navigate("/profile")}
+              style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid rgba(139,124,246,0.5)", transition: "border 0.2s" }}
+              onMouseEnter={e => e.target.style.border = "2px solid #8B7CF6"}
+              onMouseLeave={e => e.target.style.border = "2px solid rgba(139,124,246,0.5)"}
+            />
+          </>
+        ) : (
+          <>
+            <span
+              onClick={() => navigate("/login")}
+              style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer", transition: "color 0.2s" }}
+              onMouseEnter={e => e.target.style.color = "#fff"}
+              onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}
+            >Log in</span>
+            <button
+              onClick={() => navigate("/profile")}
+              style={{
+                fontSize: 13, color: "rgba(255,255,255,0.6)",
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                padding: "8px 18px", borderRadius: 999, cursor: "pointer", transition: "all 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+            >My Profile</button>
+            <a href="#signup" style={{
+              fontSize: 13, fontWeight: 500, color: "#fff", textDecoration: "none",
+              padding: "8px 18px", borderRadius: 999,
+              background: "linear-gradient(135deg, #5340C8, #7B6EE0)",
+              border: "1px solid rgba(139,124,246,0.4)",
+              transition: "opacity 0.2s",
+            }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >Get early access</a>
+          </>
+        )}
       </div>
     </nav>
   );
