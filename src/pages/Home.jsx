@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../useAuth";
+import { auth } from "../firebase";
+import { signOut } from "firebase/auth";
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
@@ -15,6 +17,7 @@ function useInView(threshold = 0.15) {
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -23,6 +26,16 @@ function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setShowMenu(false);
+      navigate("/");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
 
   const NAV_LINKS = [
     { label: "Events", path: "/events" },
@@ -74,19 +87,81 @@ function Navbar() {
       {/* Right Side — Auth */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {user ? (
-          <>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
-              {user.displayName?.split(" ")[0]}
-            </span>
-            <img
-              src={user.photoURL}
-              alt={user.displayName}
-              onClick={() => navigate("/profile")}
-              style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid rgba(139,124,246,0.5)", transition: "border 0.2s" }}
-              onMouseEnter={e => e.target.style.border = "2px solid #8B7CF6"}
-              onMouseLeave={e => e.target.style.border = "2px solid rgba(139,124,246,0.5)"}
-            />
-          </>
+          <div style={{ position: "relative" }}>
+            {/* User Avatar + Name */}
+            <div
+              style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
+                {user.displayName?.split(" ")[0]}
+              </span>
+              <img
+                src={user.photoURL}
+                alt={user.displayName}
+                style={{ width: 34, height: 34, borderRadius: "50%", border: "2px solid rgba(139,124,246,0.5)", transition: "border 0.2s" }}
+                onMouseEnter={e => e.target.style.border = "2px solid #8B7CF6"}
+                onMouseLeave={e => e.target.style.border = "2px solid rgba(139,124,246,0.5)"}
+              />
+            </div>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div style={{
+                position: "absolute", top: 44, right: 0, minWidth: 200,
+                background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 12, padding: 8, zIndex: 200,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+              }}>
+                {/* Email */}
+                <div style={{ padding: "8px 12px", fontSize: 12, color: "rgba(255,255,255,0.3)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
+                  {user.email}
+                </div>
+
+                {/* My Profile */}
+                <div
+                  onClick={() => { navigate("/profile"); setShowMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: 13, color: "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  👤 My Profile
+                </div>
+
+                {/* My Events */}
+                <div
+                  onClick={() => { navigate("/events"); setShowMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: 13, color: "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  🎪 My Events
+                </div>
+
+                {/* Find Teammates */}
+                <div
+                  onClick={() => { navigate("/teammates"); setShowMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: 13, color: "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  👥 Find Teammates
+                </div>
+
+                {/* Logout */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4, paddingTop: 4 }}>
+                  <div
+                    onClick={handleLogout}
+                    style={{ padding: "10px 12px", fontSize: 13, color: "#F09595", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(226,75,74,0.1)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    🚪 Log out
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <span
