@@ -1,177 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../useAuth";
-
-const STUDENTS = [
-  {
-    id: 1,
-    name: "Priya Sharma",
-    college: "IIT Bombay",
-    year: "3rd Year",
-    city: "Mumbai",
-    domain: "AI / ML",
-    skills: ["Python", "TensorFlow", "React", "Data Science"],
-    wins: 4,
-    events: 12,
-    bio: "AI enthusiast building smart solutions. Won SIH 2024 and Google Solution Challenge finalist.",
-    avatar: "P",
-    color: "#5340C8",
-    available: true,
-  },
-  {
-    id: 2,
-    name: "Arjun Mehta",
-    college: "BITS Pilani",
-    year: "2nd Year",
-    city: "Pilani",
-    domain: "Web3",
-    skills: ["Solidity", "React", "Node.js", "Web3.js"],
-    wins: 2,
-    events: 8,
-    bio: "Blockchain developer passionate about decentralized apps. ETHIndia 2024 winner.",
-    avatar: "A",
-    color: "#1D9E75",
-    available: true,
-  },
-  {
-    id: 3,
-    name: "Sneha Reddy",
-    college: "JNTU Hyderabad",
-    year: "4th Year",
-    city: "Hyderabad",
-    domain: "UI / UX",
-    skills: ["Figma", "React", "CSS", "Prototyping"],
-    wins: 3,
-    events: 10,
-    bio: "Designer who codes. Creating beautiful products that are also functional and accessible.",
-    avatar: "S",
-    color: "#D4537E",
-    available: true,
-  },
-  {
-    id: 4,
-    name: "Rahul Kumar",
-    college: "NIT Trichy",
-    year: "3rd Year",
-    city: "Trichy",
-    domain: "Full Stack",
-    skills: ["React", "Node.js", "MongoDB", "Docker"],
-    wins: 5,
-    events: 15,
-    bio: "Full stack dev who loves building scalable products. Open source contributor.",
-    avatar: "R",
-    color: "#EF9F27",
-    available: false,
-  },
-  {
-    id: 5,
-    name: "Ananya Singh",
-    college: "Delhi University",
-    year: "2nd Year",
-    city: "Delhi",
-    domain: "AI / ML",
-    skills: ["Python", "NLP", "Pandas", "Scikit-learn"],
-    wins: 1,
-    events: 5,
-    bio: "NLP researcher working on vernacular language models for Indian languages.",
-    avatar: "A",
-    color: "#185FA5",
-    available: true,
-  },
-  {
-    id: 6,
-    name: "Vikram Nair",
-    college: "IIT Madras",
-    year: "4th Year",
-    city: "Chennai",
-    domain: "Cybersecurity",
-    skills: ["Python", "Ethical Hacking", "Linux", "Cryptography"],
-    wins: 6,
-    events: 18,
-    bio: "Security researcher and CTF player. Bug bounty hunter with 50+ CVEs reported.",
-    avatar: "V",
-    color: "#993C1D",
-    available: true,
-  },
-  {
-    id: 7,
-    name: "Kavya Iyer",
-    college: "VIT Vellore",
-    year: "3rd Year",
-    city: "Vellore",
-    domain: "Mobile Dev",
-    skills: ["Flutter", "Dart", "Firebase", "React Native"],
-    wins: 2,
-    events: 7,
-    bio: "Mobile app developer with 3 apps on Play Store. Passionate about cross-platform development.",
-    avatar: "K",
-    color: "#7B6EE0",
-    available: true,
-  },
-  {
-    id: 8,
-    name: "Dev Patel",
-    college: "DAIICT",
-    year: "2nd Year",
-    city: "Gandhinagar",
-    domain: "Full Stack",
-    skills: ["Next.js", "TypeScript", "PostgreSQL", "AWS"],
-    wins: 3,
-    events: 9,
-    bio: "Building SaaS products on weekends. Interested in EdTech and FinTech domains.",
-    avatar: "D",
-    color: "#5340C8",
-    available: true,
-  },
-  {
-    id: 9,
-    name: "Meera Pillai",
-    college: "Amrita University",
-    year: "3rd Year",
-    city: "Coimbatore",
-    domain: "Data Science",
-    skills: ["Python", "R", "Tableau", "Machine Learning"],
-    wins: 2,
-    events: 6,
-    bio: "Data storyteller who turns raw numbers into meaningful insights. Kaggle expert.",
-    avatar: "M",
-    color: "#1D9E75",
-    available: false,
-  },
-];
-
-const CITIES = ["All", "Mumbai", "Hyderabad", "Delhi", "Bangalore", "Chennai", "Pilani", "Trichy", "Vellore", "Gandhinagar", "Coimbatore"];
-const DOMAINS = ["All", "AI / ML", "Web3", "UI / UX", "Full Stack", "Cybersecurity", "Mobile Dev", "Data Science"];
-const SKILLS_LIST = ["All", "React", "Python", "Node.js", "Flutter", "Figma", "Solidity", "TypeScript", "Docker"];
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 export default function Teammates() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [city, setCity] = useState("All");
   const [domain, setDomain] = useState("All");
-  const [skill, setSkill] = useState("All");
+  const [city, setCity] = useState("All");
   const [connected, setConnected] = useState([]);
-  const [availableOnly, setAvailableOnly] = useState(false);
+  const [domains, setDomains] = useState(["All"]);
+  const [cities, setCities] = useState(["All"]);
 
-  const filtered = STUDENTS.filter(s => {
-    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.college.toLowerCase().includes(search.toLowerCase()) ||
-      s.skills.some(sk => sk.toLowerCase().includes(search.toLowerCase()));
-    const matchCity = city === "All" || s.city === city;
+  // Fetch real students from Firestore
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "users"));
+        const data = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(s => s.name && s.skills?.length > 0); // only show complete profiles
+
+        setStudents(data);
+
+        // Build dynamic filter options from real data
+        const allDomains = [...new Set(data.map(s => s.domain).filter(Boolean))];
+        const allCities = [...new Set(data.map(s => s.city).filter(Boolean))];
+        setDomains(["All", ...allDomains]);
+        setCities(["All", ...allCities]);
+      } catch (err) {
+        console.error("Error fetching students:", err);
+      }
+      setLoading(false);
+    };
+    fetchStudents();
+  }, []);
+
+  const filtered = students.filter(s => {
+    const matchSearch =
+      s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.college?.toLowerCase().includes(search.toLowerCase()) ||
+      s.skills?.some(sk => sk.toLowerCase().includes(search.toLowerCase()));
     const matchDomain = domain === "All" || s.domain === domain;
-    const matchSkill = skill === "All" || s.skills.includes(skill);
-    const matchAvailable = !availableOnly || s.available;
-    return matchSearch && matchCity && matchDomain && matchSkill && matchAvailable;
+    const matchCity = city === "All" || s.city === city;
+    // Don't show current user in the list
+    const notSelf = s.id !== user?.uid;
+    return matchSearch && matchDomain && matchCity && notSelf;
   });
 
   const toggleConnect = (id) => {
-        if (!user) {
-        navigate("/login");
-        return;
-        }
-        setConnected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
-    };
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setConnected(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const getAvatarColor = (name) => {
+    const colors = ["#5340C8", "#1D9E75", "#D4537E", "#EF9F27", "#185FA5", "#993C1D", "#7B6EE0"];
+    const index = name?.charCodeAt(0) % colors.length || 0;
+    return colors[index];
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'Inter', sans-serif" }}>
@@ -186,6 +81,8 @@ export default function Teammates() {
         .skill-tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; margin: 3px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
         .connect-btn { width: 100%; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; margin-top: 14px; }
         input::placeholder { color: rgba(255,255,255,0.25); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
       {/* Navbar */}
@@ -229,7 +126,7 @@ export default function Teammates() {
             Find Teammates
           </h1>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>
-            {filtered.length} students found — connect with the right people for your next hackathon!
+            {loading ? "Loading students..." : `${filtered.length} students found — connect for your next hackathon!`}
           </p>
         </div>
 
@@ -254,141 +151,186 @@ export default function Teammates() {
           )}
         </div>
 
-        {/* Available Only Toggle */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div
-            onClick={() => setAvailableOnly(!availableOnly)}
-            style={{
-              width: 36, height: 20, borderRadius: 999, cursor: "pointer", transition: "all 0.2s",
-              background: availableOnly ? "linear-gradient(135deg, #5340C8, #7B6EE0)" : "rgba(255,255,255,0.1)",
-              position: "relative",
-            }}
-          >
-            <div style={{
-              width: 14, height: 14, borderRadius: "50%", background: "#fff",
-              position: "absolute", top: 3,
-              left: availableOnly ? 19 : 3,
-              transition: "left 0.2s",
-            }} />
-          </div>
-          <span style={{ fontSize: 13, color: availableOnly ? "#A899F0" : "rgba(255,255,255,0.4)" }}>
-            Show available for team only
-          </span>
-        </div>
-
         {/* Filters */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 50 }}>Domain:</span>
-            {DOMAINS.map(d => (
-              <button key={d} className={`filter-btn ${domain === d ? "active" : ""}`} onClick={() => setDomain(d)}>{d}</button>
-            ))}
+        {!loading && (domains.length > 1 || cities.length > 1) && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+            {domains.length > 1 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 50 }}>Domain:</span>
+                {domains.map(d => (
+                  <button key={d} className={`filter-btn ${domain === d ? "active" : ""}`} onClick={() => setDomain(d)}>{d}</button>
+                ))}
+              </div>
+            )}
+            {cities.length > 1 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 50 }}>City:</span>
+                {cities.map(c => (
+                  <button key={c} className={`filter-btn ${city === c ? "active" : ""}`} onClick={() => setCity(c)}>{c}</button>
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 50 }}>City:</span>
-            {CITIES.map(c => (
-              <button key={c} className={`filter-btn ${city === c ? "active" : ""}`} onClick={() => setCity(c)}>{c}</button>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 50 }}>Skill:</span>
-            {SKILLS_LIST.map(s => (
-              <button key={s} className={`filter-btn ${skill === s ? "active" : ""}`} onClick={() => setSkill(s)}>{s}</button>
-            ))}
-          </div>
-        </div>
+        )}
 
-        {/* Students Grid */}
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.4)" }}>No students found matching your filters</div>
-            <button onClick={() => { setSearch(""); setCity("All"); setDomain("All"); setSkill("All"); setAvailableOnly(false); }}
-              style={{ marginTop: 16, background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.3)", color: "#A899F0", padding: "8px 20px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>
-              Clear all filters
-            </button>
-          </div>
-        ) : (
+        {/* Loading State */}
+        {loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-            {filtered.map(student => (
-              <div key={student.id} className="student-card">
-
-                {/* Card Header */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
-                    background: `linear-gradient(135deg, ${student.color}, ${student.color}99)`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 20, fontWeight: 600, color: "#fff",
-                    border: `2px solid ${student.color}44`,
-                  }}>{student.avatar}</div>
-
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 22, animation: "pulse 1.5s infinite" }}>
+                <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{student.name}</div>
-                      {student.available ? (
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#1D9E75", flexShrink: 0 }} title="Available for team" />
-                      ) : (
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} title="Not available" />
-                      )}
-                    </div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{student.college}</div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{student.year} • {student.city}</div>
-                  </div>
-
-                  <div style={{ background: `${student.color}22`, border: `1px solid ${student.color}44`, color: student.color, fontSize: 10, fontWeight: 500, padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap" }}>
-                    {student.domain}
+                    <div style={{ height: 14, background: "rgba(255,255,255,0.06)", borderRadius: 4, marginBottom: 8, width: "60%" }} />
+                    <div style={{ height: 11, background: "rgba(255,255,255,0.04)", borderRadius: 4, width: "40%" }} />
                   </div>
                 </div>
-
-                {/* Bio */}
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 12 }}>
-                  {student.bio}
-                </p>
-
-                {/* Skills */}
-                <div style={{ marginBottom: 14 }}>
-                  {student.skills.map(s => (
-                    <span key={s} className="skill-tag">{s}</span>
-                  ))}
-                </div>
-
-                {/* Stats */}
-                <div style={{ display: "flex", gap: 16, padding: "10px 0", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#fff" }}>{student.wins}</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Wins</div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#fff" }}>{student.events}</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Events</div>
-                  </div>
-                  <div style={{ flex: 1, textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: student.available ? "#1D9E75" : "rgba(255,255,255,0.3)", fontWeight: 500 }}>
-                      {student.available ? "✓ Available for team" : "● In a team"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connect Button */}
-                <button
-                  className="connect-btn"
-                  onClick={() => toggleConnect(student.id)}
-                  style={{
-                    background: connected.includes(student.id)
-                      ? "rgba(255,255,255,0.05)"
-                      : `linear-gradient(135deg, ${student.color}, ${student.color}CC)`,
-                    color: connected.includes(student.id) ? "rgba(255,255,255,0.5)" : "#fff",
-                    border: connected.includes(student.id) ? "1px solid rgba(255,255,255,0.1)" : "none",
-                  }}
-                >
-                  {connected.includes(student.id) ? "✓ Request Sent" : "Send Team Request →"}
-                </button>
-
+                <div style={{ height: 11, background: "rgba(255,255,255,0.04)", borderRadius: 4, marginBottom: 6 }} />
+                <div style={{ height: 11, background: "rgba(255,255,255,0.04)", borderRadius: 4, width: "80%" }} />
               </div>
             ))}
           </div>
         )}
+
+        {/* No Students Yet */}
+        {!loading && students.length === 0 && (
+          <div style={{ textAlign: "center", padding: "80px 24px" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
+            <h2 style={{ fontSize: 20, color: "#fff", marginBottom: 8 }}>Be the first student!</h2>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>
+              No students have completed their profiles yet. Complete yours and be the first to show up here!
+            </p>
+            <button
+              onClick={() => navigate(user ? "/profile" : "/login")}
+              style={{ padding: "12px 28px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500 }}
+            >
+              {user ? "Complete My Profile →" : "Login & Create Profile →"}
+            </button>
+          </div>
+        )}
+
+        {/* No Results from Filter */}
+        {!loading && students.length > 0 && filtered.length === 0 && (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>No students found matching your filters</div>
+            <button
+              onClick={() => { setSearch(""); setDomain("All"); setCity("All"); }}
+              style={{ background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.3)", color: "#A899F0", padding: "8px 20px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
+
+        {/* Students Grid */}
+        {!loading && filtered.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, animation: "fadeIn 0.5s ease" }}>
+            {filtered.map(student => {
+              const color = getAvatarColor(student.name);
+              const isConnected = connected.includes(student.id);
+              return (
+                <div key={student.id} className="student-card">
+
+                  {/* Card Header */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
+                    {student.photoURL ? (
+                      <img src={student.photoURL} alt={student.name} style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${color}44`, flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#fff", border: `2px solid ${color}44`, flexShrink: 0 }}>
+                        {student.name?.charAt(0)}
+                      </div>
+                    )}
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 2 }}>{student.name}</div>
+                      {student.college && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{student.college}</div>}
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+                        {[student.year, student.city].filter(Boolean).join(" • ")}
+                      </div>
+                    </div>
+
+                    {student.domain && (
+                      <div style={{ background: `${color}22`, border: `1px solid ${color}44`, color, fontSize: 10, fontWeight: 500, padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {student.domain}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bio */}
+                  {student.bio && (
+                    <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 12 }}>
+                      {student.bio.length > 100 ? student.bio.substring(0, 100) + "..." : student.bio}
+                    </p>
+                  )}
+
+                  {/* Skills */}
+                  {student.skills?.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      {student.skills.slice(0, 5).map(s => (
+                        <span key={s} className="skill-tag">{s}</span>
+                      ))}
+                      {student.skills.length > 5 && (
+                        <span className="skill-tag">+{student.skills.length - 5} more</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Social Links */}
+                  {(student.github || student.linkedin || student.portfolio) && (
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      {student.github && (
+                        <a href={student.github} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#8B7CF6", textDecoration: "none", background: "rgba(139,124,246,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(139,124,246,0.2)" }}>🐙 GitHub</a>
+                      )}
+                      {student.linkedin && (
+                        <a href={student.linkedin} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5DCAA5", textDecoration: "none", background: "rgba(29,158,117,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(29,158,117,0.2)" }}>💼 LinkedIn</a>
+                      )}
+                      {student.portfolio && (
+                        <a href={student.portfolio} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#EF9F27", textDecoration: "none", background: "rgba(239,159,39,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(239,159,39,0.2)" }}>🌐 Portfolio</a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  {student.hackathonsWon > 0 && (
+                    <div style={{ display: "flex", gap: 16, padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
+                      <div>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: "#EF9F27" }}>{student.hackathonsWon}</span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>Wins</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Connect Button */}
+                  <button
+                    className="connect-btn"
+                    onClick={() => toggleConnect(student.id)}
+                    style={{
+                      background: isConnected ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${color}, ${color}CC)`,
+                      color: isConnected ? "rgba(255,255,255,0.5)" : "#fff",
+                      border: isConnected ? "1px solid rgba(255,255,255,0.1)" : "none",
+                    }}
+                  >
+                    {isConnected ? "✓ Request Sent" : "Send Team Request →"}
+                  </button>
+
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* CTA if not logged in */}
+        {!user && !loading && (
+          <div style={{ marginTop: 40, textAlign: "center", padding: "32px", background: "rgba(83,64,200,0.08)", border: "1px solid rgba(139,124,246,0.2)", borderRadius: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>Want to connect with these students?</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Login to send team requests and complete your own profile!</div>
+            <button onClick={() => navigate("/login")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>
+              Login with Google →
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
