@@ -5,6 +5,7 @@ import Events from './pages/Events'
 import Teammates from './pages/Teammates'
 import Reels from './pages/Reels'
 import Login from './pages/Login'
+import Admin from './pages/Admin'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/teammates" element={<Teammates />} />
         <Route path="/reels" element={<Reels />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   )
