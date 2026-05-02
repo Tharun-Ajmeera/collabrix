@@ -6,6 +6,9 @@ import Teammates from './pages/Teammates'
 import Reels from './pages/Reels'
 import Login from './pages/Login'
 import Admin from './pages/Admin'
+import EventDetail from './pages/EventDetail'
+import Chat from './pages/Chat'
+import Inbox from './pages/Inbox'
 
 function App() {
   return (
@@ -18,6 +21,9 @@ function App() {
         <Route path="/teammates" element={<Teammates />} />
         <Route path="/reels" element={<Reels />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/events/:id" element={<EventDetail />} />
+        <Route path="/inbox" element={<Inbox />} />
+        <Route path="/chat/:userId" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   )

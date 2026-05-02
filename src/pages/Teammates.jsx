@@ -53,6 +53,11 @@ export default function Teammates() {
     setConnected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
   };
 
+  const handleMessage = (studentId) => {
+    if (!user) { navigate("/login"); return; }
+    navigate(`/chat/${studentId}`);
+  };
+
   const getAvatarColor = (name) => {
     const colors = ["#5340C8", "#1D9E75", "#D4537E", "#EF9F27", "#185FA5", "#993C1D", "#7B6EE0"];
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
@@ -66,10 +71,9 @@ export default function Teammates() {
         .filter-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); padding: 6px 14px; border-radius: 999px; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .filter-btn:hover { border-color: rgba(139,124,246,0.4); color: #fff; }
         .filter-btn.active { background: rgba(83,64,200,0.2); border-color: rgba(139,124,246,0.5); color: #A899F0; font-weight: 500; }
-        .student-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 22px; transition: all 0.25s; }
+        .student-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 20px; transition: all 0.25s; }
         .student-card:hover { background: rgba(83,64,200,0.06); border-color: rgba(139,124,246,0.25); transform: translateY(-2px); }
         .skill-tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; margin: 3px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
-        .connect-btn { width: 100%; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; margin-top: 14px; }
         input::placeholder { color: rgba(255,255,255,0.25); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
@@ -92,12 +96,14 @@ export default function Teammates() {
           <span style={{ fontSize: 17, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span> India</span>
         </div>
         <div className="desktop-nav-btns">
-          <button onClick={() => navigate("/events")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>Events</button>
+          <button onClick={() => navigate("/inbox")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>💬 Messages</button>
           <button onClick={() => navigate("/profile")} style={{ background: "linear-gradient(135deg, #5340C8, #7B6EE0)", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>My Profile</button>
         </div>
       </nav>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px" }}>
+
+        {/* Header */}
         <div style={{ paddingTop: 40, marginBottom: 32 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>Connect</div>
           <h1 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 600, color: "#fff", letterSpacing: "-1px", marginBottom: 10 }}>Find Teammates</h1>
@@ -183,11 +189,13 @@ export default function Teammates() {
               const isConnected = connected.includes(student.id);
               return (
                 <div key={student.id} className="student-card">
+
+                  {/* Card Header */}
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
                     {student.photoURL ? (
-                      <img src={student.photoURL} alt={student.name} style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${color}44`, flexShrink: 0 }} />
+                      <img src={student.photoURL} alt={student.name} style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/chat/${student.id}`)} />
                     ) : (
-                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#fff", border: `2px solid ${color}44`, flexShrink: 0 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#fff", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/chat/${student.id}`)}>
                         {student.name?.charAt(0)}
                       </div>
                     )}
@@ -203,8 +211,14 @@ export default function Teammates() {
                     )}
                   </div>
 
-                  {student.bio && <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 12 }}>{student.bio.length > 100 ? student.bio.substring(0, 100) + "..." : student.bio}</p>}
+                  {/* Bio */}
+                  {student.bio && (
+                    <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 12 }}>
+                      {student.bio.length > 100 ? student.bio.substring(0, 100) + "..." : student.bio}
+                    </p>
+                  )}
 
+                  {/* Skills */}
                   {student.skills?.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
                       {student.skills.slice(0, 5).map(s => <span key={s} className="skill-tag">{s}</span>)}
@@ -212,24 +226,54 @@ export default function Teammates() {
                     </div>
                   )}
 
+                  {/* Social Links */}
                   {(student.github || student.linkedin || student.portfolio) && (
                     <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-                      {student.github && <a href={student.github} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#8B7CF6", textDecoration: "none", background: "rgba(139,124,246,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(139,124,246,0.2)" }}>🐙 GitHub</a>}
-                      {student.linkedin && <a href={student.linkedin} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5DCAA5", textDecoration: "none", background: "rgba(29,158,117,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(29,158,117,0.2)" }}>💼 LinkedIn</a>}
-                      {student.portfolio && <a href={student.portfolio} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#EF9F27", textDecoration: "none", background: "rgba(239,159,39,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(239,159,39,0.2)" }}>🌐 Portfolio</a>}
+                      {student.github && <a href={student.github} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: "#8B7CF6", textDecoration: "none", background: "rgba(139,124,246,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(139,124,246,0.2)" }}>🐙 GitHub</a>}
+                      {student.linkedin && <a href={student.linkedin} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: "#5DCAA5", textDecoration: "none", background: "rgba(29,158,117,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(29,158,117,0.2)" }}>💼 LinkedIn</a>}
+                      {student.portfolio && <a href={student.portfolio} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: "#EF9F27", textDecoration: "none", background: "rgba(239,159,39,0.1)", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(239,159,39,0.2)" }}>🌐 Portfolio</a>}
                     </div>
                   )}
 
+                  {/* Wins */}
                   {student.hackathonsWon > 0 && (
-                    <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
+                    <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)", marginBottom: 12 }}>
                       <span style={{ fontSize: 15, fontWeight: 600, color: "#EF9F27" }}>{student.hackathonsWon}</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>Hackathon Wins</span>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>Hackathon Wins 🏆</span>
                     </div>
                   )}
 
-                  <button className="connect-btn" onClick={() => toggleConnect(student.id)} style={{ background: isConnected ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${color}, ${color}CC)`, color: isConnected ? "rgba(255,255,255,0.5)" : "#fff", border: isConnected ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
-                    {isConnected ? "✓ Request Sent" : "Send Team Request →"}
-                  </button>
+                  {/* Action Buttons — Team Request + Message */}
+                  <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+                    <button
+                      onClick={() => toggleConnect(student.id)}
+                      style={{
+                        flex: 1, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+                        background: isConnected ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${color}, ${color}CC)`,
+                        color: isConnected ? "rgba(255,255,255,0.5)" : "#fff",
+                        border: isConnected ? "1px solid rgba(255,255,255,0.1)" : "none",
+                        cursor: "pointer", transition: "all 0.2s",
+                      }}
+                    >
+                      {isConnected ? "✓ Requested" : "👥 Team Up"}
+                    </button>
+                    <button
+                      onClick={() => handleMessage(student.id)}
+                      style={{
+                        padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+                        background: "rgba(29,158,117,0.15)",
+                        color: "#5DCAA5",
+                        border: "1px solid rgba(29,158,117,0.3)",
+                        cursor: "pointer", transition: "all 0.2s",
+                        whiteSpace: "nowrap",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(29,158,117,0.25)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(29,158,117,0.15)"}
+                    >
+                      💬 Message
+                    </button>
+                  </div>
+
                 </div>
               );
             })}
@@ -240,10 +284,11 @@ export default function Teammates() {
         {!user && !loading && students.length > 0 && (
           <div style={{ marginTop: 40, textAlign: "center", padding: "32px", background: "rgba(83,64,200,0.08)", border: "1px solid rgba(139,124,246,0.2)", borderRadius: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>Want to connect with these students?</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Login to send team requests and complete your profile!</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Login to message and send team requests!</div>
             <button onClick={() => navigate("/login")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Login with Google →</button>
           </div>
         )}
+
       </div>
       <BottomNav />
     </div>

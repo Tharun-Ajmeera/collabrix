@@ -202,7 +202,7 @@ export default function Events() {
               const color = getColor(event.type);
               const isSaved = saved.includes(event.id);
               return (
-                <div key={event.id} className="event-card">
+                <div key={event.id} className="event-card" onClick={() => navigate(`/events/${event.id}`)} style={{ cursor: "pointer" }}>
 
                   {/* Card Top */}
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
@@ -221,7 +221,7 @@ export default function Events() {
                         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 500, background: `${color}22`, color, border: `1px solid ${color}44`, marginTop: 2 }}>{event.type}</span>
                       </div>
                     </div>
-                    <button onClick={() => toggleSave(event.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: isSaved ? "#EF9F27" : "rgba(255,255,255,0.2)", transition: "all 0.2s", flexShrink: 0 }}>
+                    <button onClick={(e) => { e.stopPropagation(); toggleSave(event.id); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: isSaved ? "#EF9F27" : "rgba(255,255,255,0.2)", transition: "all 0.2s", flexShrink: 0 }}>
                       {isSaved ? "★" : "☆"}
                     </button>
                   </div>
@@ -272,8 +272,8 @@ export default function Events() {
 
                   {/* Register Button */}
                   {event.registrationLink ? (
-                    <a href={event.registrationLink} target="_blank" rel="noreferrer" className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)` }}>
-                      Register Now →
+                    <a href={event.registrationLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)` }}>
+                     Register Now →
                     </a>
                   ) : (
                     <button className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, border: "none" }}>
