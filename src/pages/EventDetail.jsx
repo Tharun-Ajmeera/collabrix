@@ -146,7 +146,10 @@ export default function EventDetail() {
         .info-row { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .info-row:last-child { border-bottom: none; }
         .desktop-nav-btns { display: flex; gap: 12px; }
-        @media (max-width: 768px) { .desktop-nav-btns { display: none; } }
+        @media (max-width: 768px) { 
+        .desktop-nav-btns { display: none; }
+        .event-detail-grid { grid-template-columns: 1fr !important; }
+}
       `}</style>
 
       {/* Navbar */}
@@ -179,7 +182,7 @@ export default function EventDetail() {
           ← Back to Events
         </button>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
+        <div className="event-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24,      alignItems:  "start" }}>
 
           {/* LEFT COLUMN */}
           <div>
