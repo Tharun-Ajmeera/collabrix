@@ -10,6 +10,9 @@ const SUGGESTED_DOMAINS = ["AI / ML", "Full Stack", "Web3 / Blockchain", "UI / U
 const SUGGESTED_CITIES = ["Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai", "Pune", "Kolkata", "Jaipur", "Ahmedabad", "Coimbatore", "Vellore", "Mysuru", "Nagpur", "Bhopal", "Lucknow", "Kochi", "Visakhapatnam", "Indore", "Chandigarh", "Shivamogga", "Mangalore", "Manipal", "Warangal", "Tirupati", "Online"];
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Postgraduate", "Alumni"];
 
+const TYPE_ICONS = { "Hackathon": "🏆", "Startup Meet": "🚀", "Tech Talk": "🎤", "Workshop": "🛠", "College Fest": "🎓", "Coding Contest": "💻", "Internship Drive": "💼" };
+
+// ─── Tag Input Component ───────────────────────────────────────
 function TagInput({ label, tags, setTags, suggestions, placeholder, color = "#A899F0", bg = "rgba(139,124,246,0.1)", border = "rgba(139,124,246,0.3)" }) {
   const [input, setInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -55,13 +58,86 @@ function TagInput({ label, tags, setTags, suggestions, placeholder, color = "#A8
   );
 }
 
+// ─── Saved Events Component ───────────────────────────────────────
+function SavedEvents({ userId, navigate }) {
+  const [savedEvents, setSavedEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchSaved = async () => {
+      try {
+        const snap = await getDoc(doc(db, "savedEvents", userId));
+        if (snap.exists()) {
+          const ids = snap.data().eventIds || [];
+          if (ids.length === 0) { setLoading(false); return; }
+          const eventPromises = ids.map(id => getDoc(doc(db, "events", id)));
+          const eventDocs = await Promise.all(eventPromises);
+          const events = eventDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
+          setSavedEvents(events);
+        }
+      } catch (err) { console.error(err); }
+      setLoading(false);
+    };
+    fetchSaved();
+  }, [userId]);
+
+  if (loading) return (
+    <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
+      Loading saved events...
+    </div>
+  );
+
+  if (savedEvents.length === 0) return (
+    <div style={{ textAlign: "center", padding: "40px 0" }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+      <div style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>No saved events yet</div>
+      <button onClick={() => navigate("/events")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13 }}>
+        Browse Events →
+      </button>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>⭐ {savedEvents.length} saved event{savedEvents.length > 1 ? "s" : ""}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {savedEvents.map(event => (
+          <div key={event.id}
+            onClick={() => navigate(`/events/${event.id}`)}
+            style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, cursor: "pointer", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(83,64,200,0.08)"; e.currentTarget.style.borderColor = "rgba(139,124,246,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
+          >
+            <div style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[event.type] || "📋"}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 500, color: "#fff", marginBottom: 3 }}>{event.name}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                {[event.organiser, event.city, event.date].filter(Boolean).join(" • ")}
+              </div>
+            </div>
+            {event.prize && (
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#EF9F27", flexShrink: 0 }}>{event.prize}</div>
+            )}
+            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.2)", flexShrink: 0 }}>›</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => navigate("/events")} style={{ marginTop: 16, width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)", cursor: "pointer" }}>
+        Browse more events →
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Profile Component ───────────────────────────────────────
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { userId } = useParams(); // for viewing other profiles
+  const { userId } = useParams();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
   const [profileData, setProfileData] = useState({
     college: "", year: "", city: "", domain: "", bio: "",
@@ -70,9 +146,10 @@ export default function Profile() {
   });
   const [tempData, setTempData] = useState({ ...profileData });
 
-  // Are we viewing someone else's profile?
   const viewingUserId = userId || user?.uid;
   const isOwnProfile = !userId || userId === user?.uid;
+  const displayName = isOwnProfile ? user?.displayName : profileData.name;
+  const displayPhoto = isOwnProfile ? user?.photoURL : profileData.photoURL;
 
   useEffect(() => {
     if (!viewingUserId) return;
@@ -94,23 +171,16 @@ export default function Profile() {
     setSaving(true);
     try {
       await setDoc(doc(db, "users", user.uid), {
-        ...tempData,
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        updatedAt: new Date().toISOString(),
+        ...tempData, name: user.displayName, email: user.email,
+        photoURL: user.photoURL, updatedAt: new Date().toISOString(),
       });
       setProfileData(tempData);
       setEditing(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 3000);
     } catch (err) { console.error("Error saving:", err); }
     setSaving(false);
   };
-
-  // Display user info
-  const displayName = isOwnProfile ? user?.displayName : profileData.name;
-  const displayPhoto = isOwnProfile ? user?.photoURL : profileData.photoURL;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#08080C", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -168,7 +238,7 @@ export default function Profile() {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "80px 24px 60px" }}>
 
         {/* Saved Toast */}
-        {saved && (
+        {savedToast && (
           <div style={{ position: "fixed", top: 80, right: 24, zIndex: 200, background: "rgba(29,158,117,0.2)", border: "1px solid rgba(29,158,117,0.4)", color: "#5DCAA5", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, animation: "fadeIn 0.3s ease" }}>
             ✓ Profile saved successfully!
           </div>
@@ -176,8 +246,6 @@ export default function Profile() {
 
         {/* Profile Header */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 24, padding: "40px 0 28px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexWrap: "wrap" }}>
-
-          {/* Avatar */}
           {displayPhoto ? (
             <img src={displayPhoto} alt={displayName} style={{ width: 90, height: 90, borderRadius: "50%", border: "3px solid rgba(139,124,246,0.4)", flexShrink: 0 }} />
           ) : (
@@ -190,13 +258,10 @@ export default function Profile() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
               <h1 style={{ fontSize: 22, fontWeight: 600, color: "#fff", letterSpacing: "-0.5px" }}>{displayName}</h1>
               {profileData.domain && (
-                <div style={{ background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.4)", color: "#A899F0", fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 999 }}>
-                  {profileData.domain}
-                </div>
+                <div style={{ background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.4)", color: "#A899F0", fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 999 }}>{profileData.domain}</div>
               )}
             </div>
-
-            {profileData.college && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>{profileData.college} {profileData.year && `• ${profileData.year}`}</p>}
+            {profileData.college && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>{profileData.college}{profileData.year && ` • ${profileData.year}`}</p>}
             {profileData.city && <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", marginBottom: 12 }}>📍 {profileData.city}</p>}
             {profileData.bio && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, maxWidth: 480, marginBottom: 12 }}>{profileData.bio}</p>}
 
@@ -213,82 +278,45 @@ export default function Profile() {
 
             {/* Action Buttons */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-
-              {/* Own profile → Edit button */}
-              {isOwnProfile && (
+              {isOwnProfile ? (
                 <>
-                  <button
-                    onClick={() => { setEditing(!editing); setTempData(profileData); }}
-                    style={{
-                      padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                      background: editing ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #5340C8, #7B6EE0)",
-                      color: editing ? "rgba(255,255,255,0.5)" : "#fff",
-                      border: editing ? "1px solid rgba(255,255,255,0.1)" : "none",
-                      cursor: "pointer", transition: "all 0.2s",
-                    }}
-                  >{editing ? "Cancel" : "✏️ Edit Profile"}</button>
+                  <button onClick={() => { setEditing(!editing); setTempData(profileData); }} style={{ padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500, background: editing ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #5340C8, #7B6EE0)", color: editing ? "rgba(255,255,255,0.5)" : "#fff", border: editing ? "1px solid rgba(255,255,255,0.1)" : "none", cursor: "pointer" }}>
+                    {editing ? "Cancel" : "✏️ Edit Profile"}
+                  </button>
                   {editing && (
-                    <button onClick={saveProfile} disabled={saving} style={{
-                      padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                      background: "linear-gradient(135deg, #1D9E75, #0F6E56)",
-                      color: "#fff", border: "none", cursor: saving ? "not-allowed" : "pointer",
-                      opacity: saving ? 0.7 : 1,
-                    }}>{saving ? "Saving..." : "✓ Save Profile"}</button>
+                    <button onClick={saveProfile} disabled={saving} style={{ padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500, background: "linear-gradient(135deg, #1D9E75, #0F6E56)", color: "#fff", border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+                      {saving ? "Saving..." : "✓ Save Profile"}
+                    </button>
                   )}
-                  {/* Messages shortcut */}
-                  <button onClick={() => navigate("/inbox")} style={{
-                    padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                    background: "rgba(139,124,246,0.15)", border: "1px solid rgba(139,124,246,0.3)",
-                    color: "#A899F0", cursor: "pointer", transition: "all 0.2s",
-                  }}>💬 Messages</button>
+                  <button onClick={() => navigate("/inbox")} style={{ padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 500, background: "rgba(139,124,246,0.15)", border: "1px solid rgba(139,124,246,0.3)", color: "#A899F0", cursor: "pointer" }}>
+                    💬 Messages
+                  </button>
                 </>
-              )}
-
-              {/* Other user's profile → Message + Team Up buttons */}
-              {!isOwnProfile && (
+              ) : (
                 <>
-                  <button
-                    onClick={() => {
-                      if (!user) { navigate("/login"); return; }
-                      navigate(`/chat/${viewingUserId}`);
-                    }}
-                    style={{
-                      padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                      background: "rgba(29,158,117,0.15)", border: "1px solid rgba(29,158,117,0.35)",
-                      color: "#5DCAA5", cursor: "pointer", transition: "all 0.2s",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(29,158,117,0.25)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "rgba(29,158,117,0.15)"}
-                  >💬 Message</button>
-                  <button
-                    onClick={() => {
-                      if (!user) { navigate("/login"); return; }
-                      navigate(`/chat/${viewingUserId}`);
-                    }}
-                    style={{
-                      padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                      background: "linear-gradient(135deg, #5340C8, #7B6EE0)",
-                      color: "#fff", border: "none", cursor: "pointer",
-                    }}
-                  >👥 Team Up</button>
+                  <button onClick={() => { if (!user) { navigate("/login"); return; } navigate(`/chat/${viewingUserId}`); }}
+                    style={{ padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500, background: "rgba(29,158,117,0.15)", border: "1px solid rgba(29,158,117,0.35)", color: "#5DCAA5", cursor: "pointer" }}>
+                    💬 Message
+                  </button>
+                  <button onClick={() => { if (!user) { navigate("/login"); return; } navigate(`/chat/${viewingUserId}`); }}
+                    style={{ padding: "10px 24px", borderRadius: 999, fontSize: 13, fontWeight: 500, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer" }}>
+                    👥 Team Up
+                  </button>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Edit Form — only for own profile */}
+        {/* Edit Form */}
         {editing && isOwnProfile && (
           <div style={{ padding: "28px 0", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 24 }}>Edit Your Profile</div>
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
               <div><label>College / University</label><input type="text" placeholder="e.g. JNTU Hyderabad" value={tempData.college} onChange={e => setTempData(p => ({ ...p, college: e.target.value }))} /></div>
               <div><label>Year</label><select value={tempData.year} onChange={e => setTempData(p => ({ ...p, year: e.target.value }))}><option value="">Select year</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
             </div>
-
             <div style={{ marginBottom: 16 }}><label>Bio</label><textarea placeholder="Tell other students about yourself..." value={tempData.bio} onChange={e => setTempData(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ resize: "vertical" }} /></div>
-
             <div style={{ marginBottom: 20 }}><label>Hackathons Won</label><input type="number" min="0" placeholder="0" value={tempData.hackathonsWon || ""} onChange={e => setTempData(p => ({ ...p, hackathonsWon: parseInt(e.target.value) || 0 }))} style={{ width: 120 }} /></div>
 
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Social Links</div>
@@ -299,20 +327,13 @@ export default function Profile() {
             <div style={{ marginBottom: 24 }}><label>Portfolio Website</label><input type="url" placeholder="https://yourportfolio.com" value={tempData.portfolio || ""} onChange={e => setTempData(p => ({ ...p, portfolio: e.target.value }))} /></div>
 
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Skills & Preferences</div>
-
             <TagInput label="Your Skills" tags={tempData.skills || []} setTags={tags => setTempData(p => ({ ...p, skills: tags }))} suggestions={SUGGESTED_SKILLS} placeholder="Type a skill e.g. React, Python..." color="#A899F0" bg="rgba(139,124,246,0.15)" border="rgba(139,124,246,0.4)" />
             <TagInput label="Primary Domain" tags={tempData.domain ? [tempData.domain] : []} setTags={tags => setTempData(p => ({ ...p, domain: tags[tags.length - 1] || "" }))} suggestions={SUGGESTED_DOMAINS} placeholder="e.g. AI / ML, Full Stack..." color="#A899F0" bg="rgba(139,124,246,0.15)" border="rgba(139,124,246,0.4)" />
             <TagInput label="Looking for teammates in" tags={tempData.lookingFor || []} setTags={tags => setTempData(p => ({ ...p, lookingFor: tags }))} suggestions={SUGGESTED_DOMAINS} placeholder="e.g. Web3, HealthTech..." color="#5DCAA5" bg="rgba(29,158,117,0.15)" border="rgba(29,158,117,0.4)" />
-            <TagInput label="Open to events in (cities)" tags={tempData.openToCities || []} setTags={tags => setTempData(p => ({ ...p, openToCities: tags }))} suggestions={SUGGESTED_CITIES} placeholder="e.g. Bangalore, Online..." color="#EF9F27" bg="rgba(239,159,39,0.15)" border="rgba(239,159,39,0.4)" />
+            <TagInput label="Open to events in" tags={tempData.openToCities || []} setTags={tags => setTempData(p => ({ ...p, openToCities: tags }))} suggestions={SUGGESTED_CITIES} placeholder="e.g. Bangalore, Online..." color="#EF9F27" bg="rgba(239,159,39,0.15)" border="rgba(239,159,39,0.4)" />
             <TagInput label="Your City" tags={tempData.city ? [tempData.city] : []} setTags={tags => setTempData(p => ({ ...p, city: tags[tags.length - 1] || "" }))} suggestions={SUGGESTED_CITIES} placeholder="Type your city..." color="#EF9F27" bg="rgba(239,159,39,0.15)" border="rgba(239,159,39,0.4)" />
 
-            <button onClick={saveProfile} disabled={saving} style={{
-              marginTop: 8, width: "100%", padding: "13px", borderRadius: 12,
-              fontSize: 14, fontWeight: 500, color: "#fff", border: "none",
-              background: "linear-gradient(135deg, #5340C8, #7B6EE0)",
-              cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1,
-              boxShadow: "0 0 20px rgba(83,64,200,0.3)",
-            }}>
+            <button onClick={saveProfile} disabled={saving} style={{ marginTop: 8, width: "100%", padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 500, color: "#fff", border: "none", background: "linear-gradient(135deg, #5340C8, #7B6EE0)", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, boxShadow: "0 0 20px rgba(83,64,200,0.3)" }}>
               {saving ? "Saving..." : "✓ Save Profile"}
             </button>
           </div>
@@ -323,17 +344,15 @@ export default function Profile() {
           <>
             <div style={{ display: "flex", gap: 4, padding: "20px 0", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               {["about", "events", "reels"].map(tab => (
-                <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)} style={{
-                  background: activeTab === tab ? "rgba(83,64,200,0.2)" : "transparent",
-                  color: activeTab === tab ? "#A899F0" : "rgba(255,255,255,0.4)",
-                  border: activeTab === tab ? "1px solid rgba(139,124,246,0.3)" : "1px solid transparent",
-                }}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)} style={{ background: activeTab === tab ? "rgba(83,64,200,0.2)" : "transparent", color: activeTab === tab ? "#A899F0" : "rgba(255,255,255,0.4)", border: activeTab === tab ? "1px solid rgba(139,124,246,0.3)" : "1px solid transparent" }}>
+                  {tab === "events" ? "⭐ Events" : tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               ))}
             </div>
 
             <div style={{ paddingTop: 24 }}>
+
+              {/* About Tab */}
               {activeTab === "about" && (
                 <div>
                   {profileData.hackathonsWon > 0 && (
@@ -366,21 +385,19 @@ export default function Profile() {
                     <div style={{ textAlign: "center", padding: "40px 0" }}>
                       <div style={{ fontSize: 40, marginBottom: 12 }}>👆</div>
                       <div style={{ fontSize: 14, color: "rgba(255,255,255,0.3)" }}>
-                        {isOwnProfile ? 'Click "Edit Profile" to add your skills and info!' : "This student hasn't added their skills yet."}
+                        {isOwnProfile ? 'Click "Edit Profile" to add your skills!' : "This student hasn't added their skills yet."}
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
+              {/* Events Tab — Saved Events */}
               {activeTab === "events" && (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🎪</div>
-                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>No events participated yet</div>
-                  <button onClick={() => navigate("/events")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13 }}>Browse Events →</button>
-                </div>
+                <SavedEvents userId={viewingUserId} navigate={navigate} />
               )}
 
+              {/* Reels Tab */}
               {activeTab === "reels" && (
                 <div style={{ textAlign: "center", padding: "40px 0" }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>

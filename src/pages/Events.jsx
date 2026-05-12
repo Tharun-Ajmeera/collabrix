@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, getDoc, setDoc } from "firebase/firestore";
+import { useAuth } from "../useAuth";
 import BottomNav from "../components/BottomNav";
 
 const TYPE_COLORS = {
@@ -19,15 +20,18 @@ const TYPE_COLORS = {
 
 export default function Events() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
   const [modeFilter, setModeFilter] = useState("All");
   const [domainFilter, setDomainFilter] = useState("All");
-  const [saved, setSaved] = useState([]);
+  const [savedIds, setSavedIds] = useState([]);
+  const [savingId, setSavingId] = useState(null);
   const [types, setTypes] = useState(["All"]);
   const [domains, setDomains] = useState(["All"]);
+  const [toast, setToast] = useState("");
 
   // Fetch events from Firestore
   useEffect(() => {
@@ -37,8 +41,6 @@ export default function Events() {
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setEvents(data);
-
-        // Build dynamic filters
         const allTypes = [...new Set(data.map(e => e.type).filter(Boolean))];
         const allDomains = [...new Set(data.map(e => e.domain).filter(Boolean))];
         setTypes(["All", ...allTypes]);
@@ -51,6 +53,53 @@ export default function Events() {
     fetchEvents();
   }, []);
 
+  // Fetch saved events for logged in user
+  useEffect(() => {
+    if (!user) return;
+    const fetchSaved = async () => {
+      try {
+        const snap = await getDoc(doc(db, "savedEvents", user.uid));
+        if (snap.exists()) {
+          setSavedIds(snap.data().eventIds || []);
+        }
+      } catch (err) {
+        console.error("Error fetching saved events:", err);
+      }
+    };
+    fetchSaved();
+  }, [user]);
+
+  // Toggle save event
+  const toggleSave = async (e, eventId) => {
+    e.stopPropagation();
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setSavingId(eventId);
+    const isSaved = savedIds.includes(eventId);
+    const newSavedIds = isSaved
+      ? savedIds.filter(id => id !== eventId)
+      : [...savedIds, eventId];
+
+    try {
+      await setDoc(doc(db, "savedEvents", user.uid), {
+        eventIds: newSavedIds,
+        updatedAt: new Date().toISOString(),
+      });
+      setSavedIds(newSavedIds);
+      showToast(isSaved ? "Event removed from saved" : "⭐ Event saved!");
+    } catch (err) {
+      console.error("Error saving event:", err);
+    }
+    setSavingId(null);
+  };
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
+
   const filtered = events.filter(e => {
     const matchSearch = e.name?.toLowerCase().includes(search.toLowerCase()) ||
       e.organiser?.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,15 +110,12 @@ export default function Events() {
     return matchSearch && matchType && matchMode && matchDomain;
   });
 
-  const toggleSave = (id) => setSaved(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
-
   const getColor = (type) => TYPE_COLORS[type] || "#5340C8";
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "TBA";
     try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     } catch { return dateStr; }
   };
 
@@ -81,16 +127,26 @@ export default function Events() {
         .filter-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); padding: 7px 16px; border-radius: 999px; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .filter-btn:hover { border-color: rgba(139,124,246,0.4); color: #fff; }
         .filter-btn.active { background: rgba(83,64,200,0.2); border-color: rgba(139,124,246,0.5); color: #A899F0; font-weight: 500; }
-        .event-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 24px; transition: all 0.25s; display: flex; flex-direction: column; }
+        .event-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 24px; transition: all 0.25s; display: flex; flex-direction: column; cursor: pointer; }
         .event-card:hover { background: rgba(83,64,200,0.08); border-color: rgba(139,124,246,0.35); transform: translateY(-2px); }
         .register-btn { width: 100%; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; margin-top: auto; padding-top: 12px; color: #fff; text-decoration: none; display: block; text-align: center; }
         .register-btn:hover { opacity: 0.85; }
+        .save-btn { background: none; border: none; cursor: pointer; font-size: 20px; transition: all 0.2s; flex-shrink: 0; padding: 2px; }
+        .save-btn:hover { transform: scale(1.2); }
         input::placeholder { color: rgba(255,255,255,0.25); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         .desktop-nav-btns { display: flex; gap: 12px; }
         @media (max-width: 768px) { .desktop-nav-btns { display: none; } }
       `}</style>
+
+      {/* Toast notification */}
+      {toast && (
+        <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 300, background: "rgba(83,64,200,0.9)", border: "1px solid rgba(139,124,246,0.5)", color: "#fff", padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 500, animation: "slideUp 0.3s ease", backdropFilter: "blur(10px)", whiteSpace: "nowrap" }}>
+          {toast}
+        </div>
+      )}
 
       {/* Navbar */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 2rem", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(8,8,12,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -117,12 +173,20 @@ export default function Events() {
         {/* Header */}
         <div style={{ paddingTop: 40, marginBottom: 32 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>Discover</div>
-          <h1 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 600, color: "#fff", letterSpacing: "-1px", marginBottom: 10 }}>
-            Hackathons & Events
-          </h1>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>
-            {loading ? "Loading events..." : `${filtered.length} events found across India — find your next opportunity!`}
-          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div>
+              <h1 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 600, color: "#fff", letterSpacing: "-1px", marginBottom: 6 }}>Hackathons & Events</h1>
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>
+                {loading ? "Loading events..." : `${filtered.length} events found across India!`}
+              </p>
+            </div>
+            {/* Saved events count */}
+            {user && savedIds.length > 0 && (
+              <button onClick={() => navigate("/profile")} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(239,159,39,0.15)", border: "1px solid rgba(239,159,39,0.3)", color: "#EF9F27", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
+                ⭐ {savedIds.length} Saved
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -173,14 +237,12 @@ export default function Events() {
           </div>
         )}
 
-        {/* No Events Yet */}
+        {/* No Events */}
         {!loading && events.length === 0 && (
           <div style={{ textAlign: "center", padding: "80px 24px" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎪</div>
             <h2 style={{ fontSize: 20, color: "#fff", marginBottom: 8 }}>No events yet!</h2>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", maxWidth: 400, margin: "0 auto 24px" }}>
-              Events will appear here once the admin adds them. Check back soon!
-            </p>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", maxWidth: 400, margin: "0 auto" }}>Events will appear here once the admin adds them. Check back soon!</p>
           </div>
         )}
 
@@ -200,29 +262,32 @@ export default function Events() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, animation: "fadeIn 0.5s ease" }}>
             {filtered.map(event => {
               const color = getColor(event.type);
-              const isSaved = saved.includes(event.id);
+              const isSaved = savedIds.includes(event.id);
+              const isSavingThis = savingId === event.id;
               return (
-                <div key={event.id} className="event-card" onClick={() => navigate(`/events/${event.id}`)} style={{ cursor: "pointer" }}>
+                <div key={event.id} className="event-card" onClick={() => navigate(`/events/${event.id}`)}>
 
                   {/* Card Top */}
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 42, height: 42, borderRadius: 10, background: `${color}22`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                        {event.type === "Hackathon" ? "🏆" :
-                          event.type === "Startup Meet" ? "🚀" :
-                            event.type === "Tech Talk" ? "🎤" :
-                              event.type === "Workshop" ? "🛠" :
-                                event.type === "College Fest" ? "🎓" :
-                                  event.type === "Coding Contest" ? "💻" :
-                                    event.type === "Internship Drive" ? "💼" : "📋"}
+                        {event.type === "Hackathon" ? "🏆" : event.type === "Startup Meet" ? "🚀" : event.type === "Tech Talk" ? "🎤" : event.type === "Workshop" ? "🛠" : event.type === "College Fest" ? "🎓" : event.type === "Coding Contest" ? "💻" : event.type === "Internship Drive" ? "💼" : "📋"}
                       </div>
                       <div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{event.organiser}</div>
                         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 500, background: `${color}22`, color, border: `1px solid ${color}44`, marginTop: 2 }}>{event.type}</span>
                       </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); toggleSave(event.id); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: isSaved ? "#EF9F27" : "rgba(255,255,255,0.2)", transition: "all 0.2s", flexShrink: 0 }}>
-                      {isSaved ? "★" : "☆"}
+
+                    {/* Save button */}
+                    <button
+                      className="save-btn"
+                      onClick={e => toggleSave(e, event.id)}
+                      disabled={isSavingThis}
+                      title={isSaved ? "Remove from saved" : "Save event"}
+                      style={{ color: isSaved ? "#EF9F27" : "rgba(255,255,255,0.2)", opacity: isSavingThis ? 0.5 : 1 }}
+                    >
+                      {isSavingThis ? "⏳" : isSaved ? "⭐" : "☆"}
                     </button>
                   </div>
 
@@ -270,16 +335,10 @@ export default function Events() {
                     </div>
                   )}
 
-                  {/* Register Button */}
-                  {event.registrationLink ? (
-                    <a href={event.registrationLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)` }}>
-                     Register Now →
-                    </a>
-                  ) : (
-                    <button className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, border: "none" }}>
-                      View Details →
-                    </button>
-                  )}
+                  {/* View Details Button */}
+                  <div className="register-btn" style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, borderRadius: 10, textAlign: "center", padding: "10px" }}>
+                    View Details →
+                  </div>
 
                 </div>
               );
