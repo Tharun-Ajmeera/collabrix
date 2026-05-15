@@ -2,17 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../useAuth";
 import { db } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import BottomNav from "../components/BottomNav";
 
 const SUGGESTED_SKILLS = ["React", "Python", "Node.js", "Flutter", "Figma", "UI/UX", "Machine Learning", "DSA", "Web3", "Solidity", "TypeScript", "Docker", "AWS", "MongoDB", "Java", "C++", "Data Science", "NLP", "Cybersecurity", "Next.js", "Vue.js", "Angular", "Swift", "Kotlin", "Unity", "Blender", "AR/VR", "Robotics", "IoT", "Rust", "Go", "DevOps"];
 const SUGGESTED_DOMAINS = ["AI / ML", "Full Stack", "Web3 / Blockchain", "UI / UX", "Mobile Dev", "Cybersecurity", "Data Science", "Open Innovation", "FinTech", "EdTech", "HealthTech", "Game Dev", "AR / VR", "Robotics", "IoT", "Cloud Computing", "DevOps", "Social Impact"];
 const SUGGESTED_CITIES = ["Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai", "Pune", "Kolkata", "Jaipur", "Ahmedabad", "Coimbatore", "Vellore", "Mysuru", "Nagpur", "Bhopal", "Lucknow", "Kochi", "Visakhapatnam", "Indore", "Chandigarh", "Shivamogga", "Mangalore", "Manipal", "Warangal", "Tirupati", "Online"];
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Postgraduate", "Alumni"];
-
 const TYPE_ICONS = { "Hackathon": "🏆", "Startup Meet": "🚀", "Tech Talk": "🎤", "Workshop": "🛠", "College Fest": "🎓", "Coding Contest": "💻", "Internship Drive": "💼" };
 
-// ─── Tag Input Component ───────────────────────────────────────
+// ─── Tag Input ───────────────────────────────
 function TagInput({ label, tags, setTags, suggestions, placeholder, color = "#A899F0", bg = "rgba(139,124,246,0.1)", border = "rgba(139,124,246,0.3)" }) {
   const [input, setInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -58,7 +57,7 @@ function TagInput({ label, tags, setTags, suggestions, placeholder, color = "#A8
   );
 }
 
-// ─── Saved Events Component ───────────────────────────────────────
+// ─── Saved Events ───────────────────────────────
 function SavedEvents({ userId, navigate }) {
   const [savedEvents, setSavedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,8 +72,7 @@ function SavedEvents({ userId, navigate }) {
           if (ids.length === 0) { setLoading(false); return; }
           const eventPromises = ids.map(id => getDoc(doc(db, "events", id)));
           const eventDocs = await Promise.all(eventPromises);
-          const events = eventDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
-          setSavedEvents(events);
+          setSavedEvents(eventDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() })));
         }
       } catch (err) { console.error(err); }
       setLoading(false);
@@ -82,19 +80,13 @@ function SavedEvents({ userId, navigate }) {
     fetchSaved();
   }, [userId]);
 
-  if (loading) return (
-    <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-      Loading saved events...
-    </div>
-  );
+  if (loading) return <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.4)" }}>Loading saved events...</div>;
 
   if (savedEvents.length === 0) return (
     <div style={{ textAlign: "center", padding: "40px 0" }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
       <div style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>No saved events yet</div>
-      <button onClick={() => navigate("/events")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13 }}>
-        Browse Events →
-      </button>
+      <button onClick={() => navigate("/events")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13 }}>Browse Events →</button>
     </div>
   );
 
@@ -103,22 +95,17 @@ function SavedEvents({ userId, navigate }) {
       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>⭐ {savedEvents.length} saved event{savedEvents.length > 1 ? "s" : ""}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {savedEvents.map(event => (
-          <div key={event.id}
-            onClick={() => navigate(`/events/${event.id}`)}
+          <div key={event.id} onClick={() => navigate(`/events/${event.id}`)}
             style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(83,64,200,0.08)"; e.currentTarget.style.borderColor = "rgba(139,124,246,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(83,64,200,0.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
           >
             <div style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[event.type] || "📋"}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 500, color: "#fff", marginBottom: 3 }}>{event.name}</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                {[event.organiser, event.city, event.date].filter(Boolean).join(" • ")}
-              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{[event.organiser, event.city, event.date].filter(Boolean).join(" • ")}</div>
             </div>
-            {event.prize && (
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#EF9F27", flexShrink: 0 }}>{event.prize}</div>
-            )}
+            {event.prize && <div style={{ fontSize: 13, fontWeight: 600, color: "#EF9F27", flexShrink: 0 }}>{event.prize}</div>}
             <div style={{ fontSize: 16, color: "rgba(255,255,255,0.2)", flexShrink: 0 }}>›</div>
           </div>
         ))}
@@ -130,7 +117,84 @@ function SavedEvents({ userId, navigate }) {
   );
 }
 
-// ─── Main Profile Component ───────────────────────────────────────
+// ─── Team Requests ───────────────────────────────
+function TeamRequests({ userId }) {
+  const navigate = useNavigate();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchRequests = async () => {
+      try {
+        const q = query(
+          collection(db, "teamRequests"),
+          where("toId", "==", userId),
+          where("status", "==", "pending")
+        );
+        const snapshot = await getDocs(q);
+        setRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) { console.error(err); }
+      setLoading(false);
+    };
+    fetchRequests();
+  }, [userId]);
+
+  const handleRequest = async (requestId, fromId, action) => {
+    try {
+      await updateDoc(doc(db, "teamRequests", requestId), { status: action });
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      if (action === "accepted") navigate(`/chat/${fromId}`);
+    } catch (err) { console.error(err); }
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.4)" }}>Loading requests...</div>;
+
+  if (requests.length === 0) return (
+    <div style={{ textAlign: "center", padding: "40px 0" }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+      <div style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>No pending team requests</div>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>When someone sends you a team request it appears here!</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>
+        👥 {requests.length} pending request{requests.length > 1 ? "s" : ""}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {requests.map(req => (
+          <div key={req.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px", background: "rgba(83,64,200,0.08)", border: "1px solid rgba(139,124,246,0.2)", borderRadius: 14 }}>
+            {req.fromPhoto ? (
+              <img src={req.fromPhoto} alt={req.fromName} style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid rgba(139,124,246,0.4)", flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg,#5340C8,#8B7CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600, color: "#fff", flexShrink: 0 }}>
+                {req.fromName?.charAt(0)}
+              </div>
+            )}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 3 }}>{req.fromName}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Wants to team up with you! 🚀</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => handleRequest(req.id, req.fromId, "accepted")}
+                style={{ padding: "8px 16px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: "linear-gradient(135deg,#1D9E75,#0F6E56)", color: "#fff", border: "none", cursor: "pointer" }}
+              >✓ Accept</button>
+              <button
+                onClick={() => handleRequest(req.id, req.fromId, "declined")}
+                style={{ padding: "8px 14px", borderRadius: 999, fontSize: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", cursor: "pointer" }}
+              >✕</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Profile ───────────────────────────────
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -161,7 +225,7 @@ export default function Profile() {
           setProfileData(data);
           setTempData(data);
         }
-      } catch (err) { console.error("Error loading profile:", err); }
+      } catch (err) { console.error(err); }
     };
     fetchProfile();
   }, [viewingUserId]);
@@ -178,7 +242,7 @@ export default function Profile() {
       setEditing(false);
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 3000);
-    } catch (err) { console.error("Error saving:", err); }
+    } catch (err) { console.error(err); }
     setSaving(false);
   };
 
@@ -198,12 +262,23 @@ export default function Profile() {
     </div>
   );
 
+  const TABS = isOwnProfile
+    ? ["about", "events", "requests", "reels"]
+    : ["about", "events", "reels"];
+
+  const TAB_LABELS = {
+    about: "About",
+    events: "⭐ Events",
+    requests: "👥 Requests",
+    reels: "Reels",
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .tab-btn { background: none; border: none; cursor: pointer; padding: 10px 20px; font-size: 13px; font-weight: 500; border-radius: 999px; transition: all 0.2s; }
+        .tab-btn { background: none; border: none; cursor: pointer; padding: 10px 18px; font-size: 13px; font-weight: 500; border-radius: 999px; transition: all 0.2s; white-space: nowrap; }
         input[type="text"], input[type="url"], input[type="number"], textarea, select { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #fff; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; font-family: inherit; transition: border 0.2s; }
         input:focus, textarea:focus, select:focus { border-color: rgba(139,124,246,0.6); }
         select option { background: #1a1a2e; }
@@ -318,21 +393,18 @@ export default function Profile() {
             </div>
             <div style={{ marginBottom: 16 }}><label>Bio</label><textarea placeholder="Tell other students about yourself..." value={tempData.bio} onChange={e => setTempData(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ resize: "vertical" }} /></div>
             <div style={{ marginBottom: 20 }}><label>Hackathons Won</label><input type="number" min="0" placeholder="0" value={tempData.hackathonsWon || ""} onChange={e => setTempData(p => ({ ...p, hackathonsWon: parseInt(e.target.value) || 0 }))} style={{ width: 120 }} /></div>
-
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Social Links</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 20 }}>
               <div><label>GitHub URL</label><input type="url" placeholder="https://github.com/username" value={tempData.github || ""} onChange={e => setTempData(p => ({ ...p, github: e.target.value }))} /></div>
               <div><label>LinkedIn URL</label><input type="url" placeholder="https://linkedin.com/in/username" value={tempData.linkedin || ""} onChange={e => setTempData(p => ({ ...p, linkedin: e.target.value }))} /></div>
             </div>
             <div style={{ marginBottom: 24 }}><label>Portfolio Website</label><input type="url" placeholder="https://yourportfolio.com" value={tempData.portfolio || ""} onChange={e => setTempData(p => ({ ...p, portfolio: e.target.value }))} /></div>
-
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Skills & Preferences</div>
             <TagInput label="Your Skills" tags={tempData.skills || []} setTags={tags => setTempData(p => ({ ...p, skills: tags }))} suggestions={SUGGESTED_SKILLS} placeholder="Type a skill e.g. React, Python..." color="#A899F0" bg="rgba(139,124,246,0.15)" border="rgba(139,124,246,0.4)" />
             <TagInput label="Primary Domain" tags={tempData.domain ? [tempData.domain] : []} setTags={tags => setTempData(p => ({ ...p, domain: tags[tags.length - 1] || "" }))} suggestions={SUGGESTED_DOMAINS} placeholder="e.g. AI / ML, Full Stack..." color="#A899F0" bg="rgba(139,124,246,0.15)" border="rgba(139,124,246,0.4)" />
             <TagInput label="Looking for teammates in" tags={tempData.lookingFor || []} setTags={tags => setTempData(p => ({ ...p, lookingFor: tags }))} suggestions={SUGGESTED_DOMAINS} placeholder="e.g. Web3, HealthTech..." color="#5DCAA5" bg="rgba(29,158,117,0.15)" border="rgba(29,158,117,0.4)" />
             <TagInput label="Open to events in" tags={tempData.openToCities || []} setTags={tags => setTempData(p => ({ ...p, openToCities: tags }))} suggestions={SUGGESTED_CITIES} placeholder="e.g. Bangalore, Online..." color="#EF9F27" bg="rgba(239,159,39,0.15)" border="rgba(239,159,39,0.4)" />
             <TagInput label="Your City" tags={tempData.city ? [tempData.city] : []} setTags={tags => setTempData(p => ({ ...p, city: tags[tags.length - 1] || "" }))} suggestions={SUGGESTED_CITIES} placeholder="Type your city..." color="#EF9F27" bg="rgba(239,159,39,0.15)" border="rgba(239,159,39,0.4)" />
-
             <button onClick={saveProfile} disabled={saving} style={{ marginTop: 8, width: "100%", padding: "13px", borderRadius: 12, fontSize: 14, fontWeight: 500, color: "#fff", border: "none", background: "linear-gradient(135deg, #5340C8, #7B6EE0)", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, boxShadow: "0 0 20px rgba(83,64,200,0.3)" }}>
               {saving ? "Saving..." : "✓ Save Profile"}
             </button>
@@ -342,10 +414,10 @@ export default function Profile() {
         {/* Tabs */}
         {!editing && (
           <>
-            <div style={{ display: "flex", gap: 4, padding: "20px 0", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              {["about", "events", "reels"].map(tab => (
+            <div style={{ display: "flex", gap: 4, padding: "20px 0", borderBottom: "1px solid rgba(255,255,255,0.07)", overflowX: "auto" }}>
+              {TABS.map(tab => (
                 <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)} style={{ background: activeTab === tab ? "rgba(83,64,200,0.2)" : "transparent", color: activeTab === tab ? "#A899F0" : "rgba(255,255,255,0.4)", border: activeTab === tab ? "1px solid rgba(139,124,246,0.3)" : "1px solid transparent" }}>
-                  {tab === "events" ? "⭐ Events" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {TAB_LABELS[tab]}
                 </button>
               ))}
             </div>
@@ -392,9 +464,14 @@ export default function Profile() {
                 </div>
               )}
 
-              {/* Events Tab — Saved Events */}
+              {/* Events Tab */}
               {activeTab === "events" && (
                 <SavedEvents userId={viewingUserId} navigate={navigate} />
+              )}
+
+              {/* Requests Tab — only own profile */}
+              {activeTab === "requests" && isOwnProfile && (
+                <TeamRequests userId={user?.uid} />
               )}
 
               {/* Reels Tab */}

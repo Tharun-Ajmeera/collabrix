@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../useAuth";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, getDocs as getDocsQuery, serverTimestamp } from "firebase/firestore";
 import BottomNav from "../components/BottomNav";
 
 export default function Teammates() {
@@ -13,10 +13,13 @@ export default function Teammates() {
   const [search, setSearch] = useState("");
   const [domain, setDomain] = useState("All");
   const [city, setCity] = useState("All");
-  const [connected, setConnected] = useState([]);
   const [domains, setDomains] = useState(["All"]);
   const [cities, setCities] = useState(["All"]);
+  const [sentRequests, setSentRequests] = useState([]);
+  const [sendingId, setSendingId] = useState(null);
+  const [toast, setToast] = useState("");
 
+  // Fetch students
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -29,13 +32,62 @@ export default function Teammates() {
         const allCities = [...new Set(data.map(s => s.city).filter(Boolean))];
         setDomains(["All", ...allDomains]);
         setCities(["All", ...allCities]);
-      } catch (err) {
-        console.error("Error fetching students:", err);
-      }
+      } catch (err) { console.error(err); }
       setLoading(false);
     };
     fetchStudents();
   }, []);
+
+  // Fetch already sent requests
+  useEffect(() => {
+    if (!user) return;
+    const fetchSentRequests = async () => {
+      try {
+        const q = query(
+          collection(db, "teamRequests"),
+          where("fromId", "==", user.uid)
+        );
+        const snapshot = await getDocs(q);
+        const ids = snapshot.docs.map(d => d.data().toId);
+        setSentRequests(ids);
+      } catch (err) { console.error(err); }
+    };
+    fetchSentRequests();
+  }, [user]);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
+
+  const handleTeamUp = async (student) => {
+    if (!user) { navigate("/login"); return; }
+    if (sentRequests.includes(student.id)) return;
+    setSendingId(student.id);
+    try {
+      await addDoc(collection(db, "teamRequests"), {
+        fromId: user.uid,
+        fromName: user.displayName,
+        fromPhoto: user.photoURL || "",
+        fromCollege: "",
+        toId: student.id,
+        toName: student.name,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      setSentRequests(prev => [...prev, student.id]);
+      showToast(`✅ Team request sent to ${student.name}!`);
+    } catch (err) {
+      console.error("Error sending request:", err);
+      showToast("Failed to send request. Try again!");
+    }
+    setSendingId(null);
+  };
+
+  const handleMessage = (studentId) => {
+    if (!user) { navigate("/login"); return; }
+    navigate(`/chat/${studentId}`);
+  };
 
   const filtered = students.filter(s => {
     const matchSearch =
@@ -47,16 +99,6 @@ export default function Teammates() {
     const notSelf = s.id !== user?.uid;
     return matchSearch && matchDomain && matchCity && notSelf;
   });
-
-  const toggleConnect = (id) => {
-    if (!user) { navigate("/login"); return; }
-    setConnected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
-  };
-
-  const handleMessage = (studentId) => {
-    if (!user) { navigate("/login"); return; }
-    navigate(`/chat/${studentId}`);
-  };
 
   const getAvatarColor = (name) => {
     const colors = ["#5340C8", "#1D9E75", "#D4537E", "#EF9F27", "#185FA5", "#993C1D", "#7B6EE0"];
@@ -77,9 +119,17 @@ export default function Teammates() {
         input::placeholder { color: rgba(255,255,255,0.25); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         .desktop-nav-btns { display: flex; gap: 12px; }
         @media (max-width: 768px) { .desktop-nav-btns { display: none; } }
       `}</style>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 300, background: "rgba(83,64,200,0.95)", border: "1px solid rgba(139,124,246,0.5)", color: "#fff", padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 500, animation: "slideUp 0.3s ease", backdropFilter: "blur(10px)", whiteSpace: "nowrap" }}>
+          {toast}
+        </div>
+      )}
 
       {/* Navbar */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 2rem", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(8,8,12,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -161,9 +211,7 @@ export default function Teammates() {
           <div style={{ textAlign: "center", padding: "80px 24px" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
             <h2 style={{ fontSize: 20, color: "#fff", marginBottom: 8 }}>Be the first student!</h2>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>
-              No students yet. Complete your profile and be the first to show up here!
-            </p>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>Complete your profile and be the first to show up here!</p>
             <button onClick={() => navigate(user ? "/profile" : "/login")} style={{ padding: "12px 28px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>
               {user ? "Complete My Profile →" : "Login & Create Profile →"}
             </button>
@@ -174,7 +222,7 @@ export default function Teammates() {
         {!loading && students.length > 0 && filtered.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>No students found matching your filters</div>
+            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>No students found</div>
             <button onClick={() => { setSearch(""); setDomain("All"); setCity("All"); }} style={{ background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.3)", color: "#A899F0", padding: "8px 20px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>
               Clear all filters
             </button>
@@ -186,21 +234,22 @@ export default function Teammates() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16, animation: "fadeIn 0.5s ease" }}>
             {filtered.map(student => {
               const color = getAvatarColor(student.name);
-              const isConnected = connected.includes(student.id);
+              const isRequested = sentRequests.includes(student.id);
+              const isSending = sendingId === student.id;
               return (
                 <div key={student.id} className="student-card">
 
                   {/* Card Header */}
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
                     {student.photoURL ? (
-                      <img src={student.photoURL} alt={student.name} style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/chat/${student.id}`)} />
+                      <img src={student.photoURL} alt={student.name} style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/user/${student.id}`)} />
                     ) : (
-                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#fff", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/chat/${student.id}`)}>
+                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#fff", border: `2px solid ${color}44`, flexShrink: 0, cursor: "pointer" }} onClick={() => navigate(`/user/${student.id}`)}>
                         {student.name?.charAt(0)}
                       </div>
                     )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 2 }}>{student.name}</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 2, cursor: "pointer" }} onClick={() => navigate(`/user/${student.id}`)}>{student.name}</div>
                       {student.college && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{student.college}</div>}
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{[student.year, student.city].filter(Boolean).join(" • ")}</div>
                     </div>
@@ -243,37 +292,39 @@ export default function Teammates() {
                     </div>
                   )}
 
-                  {/* Action Buttons — Team Request + Message */}
+                  {/* Action Buttons */}
                   <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
                     <button
-                      onClick={() => toggleConnect(student.id)}
+                      onClick={() => handleTeamUp(student)}
+                      disabled={isRequested || isSending}
                       style={{
                         flex: 1, padding: "10px", borderRadius: 10, fontSize: 13, fontWeight: 500,
-                        background: isConnected ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${color}, ${color}CC)`,
-                        color: isConnected ? "rgba(255,255,255,0.5)" : "#fff",
-                        border: isConnected ? "1px solid rgba(255,255,255,0.1)" : "none",
-                        cursor: "pointer", transition: "all 0.2s",
+                        background: isRequested ? "rgba(29,158,117,0.15)" : `linear-gradient(135deg, ${color}, ${color}CC)`,
+                        color: isRequested ? "#5DCAA5" : "#fff",
+                        border: isRequested ? "1px solid rgba(29,158,117,0.3)" : "none",
+                        cursor: isRequested ? "default" : "pointer",
+                        opacity: isSending ? 0.7 : 1,
+                        transition: "all 0.2s",
                       }}
                     >
-                      {isConnected ? "✓ Requested" : "👥 Team Up"}
+                      {isSending ? "Sending..." : isRequested ? "✓ Request Sent" : "👥 Team Up"}
                     </button>
                     <button
                       onClick={() => handleMessage(student.id)}
                       style={{
                         padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500,
-                        background: "rgba(29,158,117,0.15)",
-                        color: "#5DCAA5",
-                        border: "1px solid rgba(29,158,117,0.3)",
+                        background: "rgba(139,124,246,0.15)",
+                        color: "#A899F0",
+                        border: "1px solid rgba(139,124,246,0.3)",
                         cursor: "pointer", transition: "all 0.2s",
                         whiteSpace: "nowrap",
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(29,158,117,0.25)"}
-                      onMouseLeave={e => e.currentTarget.style.background = "rgba(29,158,117,0.15)"}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(139,124,246,0.25)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(139,124,246,0.15)"}
                     >
-                      💬 Message
+                      💬
                     </button>
                   </div>
-
                 </div>
               );
             })}
@@ -284,7 +335,7 @@ export default function Teammates() {
         {!user && !loading && students.length > 0 && (
           <div style={{ marginTop: 40, textAlign: "center", padding: "32px", background: "rgba(83,64,200,0.08)", border: "1px solid rgba(139,124,246,0.2)", borderRadius: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", marginBottom: 8 }}>Want to connect with these students?</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Login to message and send team requests!</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Login to send team requests and message students!</div>
             <button onClick={() => navigate("/login")} style={{ padding: "10px 24px", borderRadius: 999, background: "linear-gradient(135deg, #5340C8, #7B6EE0)", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Login with Google →</button>
           </div>
         )}
