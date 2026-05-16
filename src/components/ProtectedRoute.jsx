@@ -1,26 +1,11 @@
-// src/components/ProtectedRoute.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Use this wrapper around any route that requires login.
-//
-// Usage in your router (App.jsx):
-//
-//   import ProtectedRoute from "./components/ProtectedRoute";
-//
-//   <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-//   <Route path="/teammates" element={<ProtectedRoute><Teammates /></ProtectedRoute>} />
-//
-// If the user is not logged in, they get sent to /login.
-// While Firebase is still resolving the session, a spinner is shown instead
-// of immediately redirecting — this is what fixed the login loop.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { auth } from "../firebase"; // ← add this
 
 export default function ProtectedRoute({ children }) {
   const { user, authLoading } = useAuth();
 
-  // Firebase is still checking — don't redirect yet
+  // Still loading — wait, don't redirect yet
   if (authLoading) {
     return (
       <div style={{
@@ -39,8 +24,8 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Auth resolved: redirect if not logged in
-  if (!user) {
+  // Check both hook state AND Firebase's sync currentUser
+  if (!user && !auth.currentUser) {
     return <Navigate to="/login" replace />;
   }
 
