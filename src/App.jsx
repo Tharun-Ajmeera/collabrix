@@ -9,22 +9,26 @@ import Login from './pages/Login'
 import Admin from './pages/Admin'
 import Chat from './pages/Chat'
 import Inbox from './pages/Inbox'
+import ProtectedRoute from "./components/ProtectedRoute"
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/user/:userId" element={<Profile />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        <Route path="/teammates" element={<Teammates />} />
-        <Route path="/reels" element={<Reels />} />
-        <Route path="/inbox" element={<Inbox />} />
-        <Route path="/chat/:userId" element={<Chat />} />
-        <Route path="/admin" element={<Admin />} />
+        {/* Public routes — anyone can view */}
+        <Route path="/"            element={<Home />} />
+        <Route path="/login"       element={<Login />} />
+        <Route path="/events"      element={<Events />} />
+        <Route path="/events/:id"  element={<EventDetail />} />
+        <Route path="/teammates"   element={<Teammates />} />
+        <Route path="/reels"       element={<Reels />} />
+
+        {/* Protected routes — must be logged in */}
+        <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/user/:userId"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/inbox"          element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+        <Route path="/chat/:userId"   element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/admin"          element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
