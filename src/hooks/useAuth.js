@@ -1,31 +1,25 @@
-// src/hooks/useAuth.js
-// ─────────────────────────────────────────────────────────────────────────────
-// FIX: Added `authLoading` state.
-//
-// The redirect loop happened because:
-//   1. User logs in → navigate("/profile")
-//   2. Profile page mounts → useAuth runs → auth.currentUser is null for ~200ms
-//      (Firebase hasn't restored the session yet)
-//   3. Protected route sees null user → redirects back to /login ← LOOP
-//
-// Fix: `authLoading` starts true and only flips false after the FIRST
-// onAuthStateChanged fires. Protected routes must wait for authLoading=false
-// before deciding to redirect.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
 import { auth } from "../firebase";
 
 export function useAuth() {
-  const [user, setUser]               = useState(null);
-  const [authLoading, setAuthLoading] = useState(true); // ← KEY FIX
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false); // Firebase has resolved; safe to act on auth state
-    });
+    let unsubscribe = () => {};
+
+    // ✅ KEY FIX: wait for redirect to fully resolve first,
+    // THEN start listening — prevents the null flash race condition
+    getRedirectResult(auth)
+      .catch(() => {})
+      .finally(() => {
+        unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          setUser(currentUser);
+          setAuthLoading(false);
+        });
+      });
+
     return () => unsubscribe();
   }, []);
 

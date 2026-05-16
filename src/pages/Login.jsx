@@ -3,20 +3,24 @@ import { auth, googleProvider } from "../firebase";
 import {
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 // ── tiny helpers ──────────────────────────────────────────────────────────────
 const Input = ({ label, type = "text", value, onChange, placeholder, maxLength }) => (
   <div style={{ marginBottom: 16 }}>
-    <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.45)", marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+    <label style={{
+      display: "block", fontSize: 12, fontWeight: 500,
+      color: "rgba(255,255,255,0.45)", marginBottom: 6,
+      letterSpacing: "0.04em", textTransform: "uppercase",
+    }}>
       {label}
     </label>
     <input
@@ -43,11 +47,13 @@ const PrimaryBtn = ({ onClick, disabled, children, loading }) => (
     disabled={disabled || loading}
     style={{
       width: "100%", padding: "13px 20px", borderRadius: 12,
-      background: disabled || loading ? "rgba(83,64,200,0.4)" : "linear-gradient(135deg,#5340C8,#7B5CF0)",
+      background: disabled || loading
+        ? "rgba(83,64,200,0.4)"
+        : "linear-gradient(135deg,#5340C8,#7B5CF0)",
       border: "none", color: "#fff", fontSize: 14, fontWeight: 600,
       cursor: disabled || loading ? "not-allowed" : "pointer",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-      transition: "opacity 0.2s", letterSpacing: "0.01em",
+      transition: "opacity 0.2s", letterSpacing: "0.01em", fontFamily: "inherit",
     }}
     onMouseEnter={e => { if (!disabled && !loading) e.currentTarget.style.opacity = "0.88"; }}
     onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
@@ -56,7 +62,7 @@ const PrimaryBtn = ({ onClick, disabled, children, loading }) => (
   </button>
 );
 
-const Spinner = ({ size = 24, color = "#5340C8" }) => (
+const Spinner = ({ size = 28, color = "#5340C8" }) => (
   <div style={{
     width: size, height: size,
     border: `2.5px solid ${color}33`,
@@ -67,63 +73,69 @@ const Spinner = ({ size = 24, color = "#5340C8" }) => (
   }} />
 );
 
-const Divider = ({ text = "or" }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", letterSpacing: "0.05em" }}>{text}</span>
-    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+const ErrorBox = ({ msg }) => (
+  <div style={{
+    padding: "10px 14px", borderRadius: 8,
+    background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.25)",
+    color: "#F09595", fontSize: 13, marginBottom: 14, textAlign: "center",
+  }}>
+    {msg}
   </div>
+);
+
+const BackBtn = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: "none", border: "none", color: "rgba(255,255,255,0.35)",
+      fontSize: 13, cursor: "pointer", marginBottom: 16, padding: 0,
+      display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit",
+    }}
+    onMouseEnter={e => (e.currentTarget.style.color = "#8B7CF6")}
+    onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.35)")}
+  >
+    ← Back
+  </button>
 );
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function Login() {
-  // tab: "signin" | "signup"
-  const [tab, setTab] = useState("signin");
-  // method: "options" | "email" | "phone"
-  const [method, setMethod] = useState("options");
+  const [tab, setTab]                   = useState("signin");
+  const [method, setMethod]             = useState("options");
 
-  const [email, setEmail]           = useState("");
-  const [password, setPassword]     = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
+  const [email, setEmail]               = useState("");
+  const [password, setPassword]         = useState("");
+  const [confirmPass, setConfirmPass]   = useState("");
 
-  const [phone, setPhone]           = useState("");
-  const [otp, setOtp]               = useState("");
-  const [otpSent, setOtpSent]       = useState(false);
+  const [phone, setPhone]               = useState("+91"); // pre-filled
+  const [otp, setOtp]                   = useState("");
+  const [otpSent, setOtpSent]           = useState(false);
   const [confirmResult, setConfirmResult] = useState(null);
 
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState("");
-  const [success, setSuccess]       = useState("");
+  const [loading, setLoading]           = useState(true); // true until auth resolves
+  const [error, setError]               = useState("");
 
-  const navigate    = useNavigate();
-  const recaptchaRef = useRef(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // ── handle Google redirect result (mobile) ──────────────────────────────
+  // ── KEY FIX: navigate when Firebase auth resolves (handles mobile redirect) ──
   useEffect(() => {
-    setLoading(true);
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          navigate("/profile", { replace: true });
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error("Redirect error:", err);
-        setError("Google login failed. Please try again.");
-        setLoading(false);
-      });
-  }, []);
+    if (user) {
+      navigate("/profile", { replace: true });
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
-  // reset errors when switching tabs/methods
-  useEffect(() => { setError(""); setSuccess(""); }, [tab, method]);
+  // reset errors on tab/method switch
+  useEffect(() => { setError(""); }, [tab, method]);
 
-  // ── Google login ────────────────────────────────────────────────────────
+  // ── Google ──────────────────────────────────────────────────────────────────
   const handleGoogle = async () => {
     setLoading(true); setError("");
     try {
       if (isMobile) {
+        // Redirect flow: page reloads → useAuth picks up session → useEffect navigates
         await signInWithRedirect(auth, googleProvider);
       } else {
         await signInWithPopup(auth, googleProvider);
@@ -136,7 +148,7 @@ export default function Login() {
     }
   };
 
-  // ── Email / Password ────────────────────────────────────────────────────
+  // ── Email / Password ─────────────────────────────────────────────────────────
   const handleEmail = async () => {
     setError("");
     if (!email || !password) return setError("Please fill in all fields.");
@@ -157,7 +169,7 @@ export default function Login() {
     }
   };
 
-  // ── Phone OTP ───────────────────────────────────────────────────────────
+  // ── Phone OTP ────────────────────────────────────────────────────────────────
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
@@ -169,8 +181,12 @@ export default function Login() {
 
   const handleSendOtp = async () => {
     setError("");
-    const cleaned = phone.trim();
-    if (!cleaned || cleaned.length < 10) return setError("Enter a valid phone number with country code (e.g. +91XXXXXXXXXX).");
+    let cleaned = phone.trim();
+    // auto-fix: 919XXXXXXXX → +919XXXXXXXX
+    if (!cleaned.startsWith("+") && cleaned.startsWith("91")) cleaned = "+" + cleaned;
+    if (!cleaned.startsWith("+") || cleaned.replace(/\D/g, "").length < 10) {
+      return setError("Enter number with country code e.g. +91XXXXXXXXXX");
+    }
     setLoading(true);
     try {
       setupRecaptcha();
@@ -180,10 +196,7 @@ export default function Login() {
     } catch (err) {
       console.error(err);
       setError(friendlyError(err.code));
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
+      if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
     } finally {
       setLoading(false);
     }
@@ -203,7 +216,7 @@ export default function Login() {
     }
   };
 
-  // ── friendly error messages ─────────────────────────────────────────────
+  // ── friendly errors ──────────────────────────────────────────────────────────
   const friendlyError = (code) => {
     switch (code) {
       case "auth/user-not-found":        return "No account found with this email.";
@@ -211,29 +224,41 @@ export default function Login() {
       case "auth/email-already-in-use":  return "This email is already registered. Try signing in.";
       case "auth/invalid-email":         return "Please enter a valid email address.";
       case "auth/too-many-requests":     return "Too many attempts. Please wait a moment.";
-      case "auth/invalid-phone-number":  return "Invalid phone number. Use format +91XXXXXXXXXX.";
-      case "auth/popup-closed-by-user":  return "Login popup was closed. Please try again.";
+      case "auth/invalid-phone-number":  return "Invalid number. Use format +91XXXXXXXXXX.";
+      case "auth/popup-closed-by-user":  return "Popup was closed. Please try again.";
       default:                           return "Something went wrong. Please try again.";
     }
   };
 
-  // ── render ──────────────────────────────────────────────────────────────
+  // ── render ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0" }}>
+    <div style={{
+      minHeight: "100vh", background: "#08080C",
+      fontFamily: "'DM Sans', sans-serif",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "24px 0",
+    }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes spin    { to { transform: rotate(360deg); } }
-        @keyframes fadeIn  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes spin   { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         input::placeholder { color: rgba(255,255,255,0.2); }
-        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #111 inset !important; -webkit-text-fill-color: #fff !important; }
+        input:-webkit-autofill {
+          -webkit-box-shadow: 0 0 0 100px #111 inset !important;
+          -webkit-text-fill-color: #fff !important;
+        }
       `}</style>
 
       <div style={{ width: "100%", maxWidth: 420, padding: "0 24px", animation: "fadeIn 0.35s ease" }}>
 
         {/* ── Logo ── */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ width: 60, height: 60, borderRadius: 16, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: 16, background: "#EEF2FF",
+            border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center",
+            justifyContent: "center", margin: "0 auto 14px",
+          }}>
             <svg width="32" height="32" viewBox="0 0 46 46" fill="none">
               <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
               <circle cx="35" cy="11" r="6.5" fill="#5340C8" opacity="0.55" />
@@ -251,13 +276,18 @@ export default function Login() {
         </div>
 
         {/* ── Card ── */}
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "28px 28px 24px", overflow: "hidden" }}>
+        <div style={{
+          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 20, padding: "28px 28px 24px",
+        }}>
 
-          {/* ── Sign In / Sign Up tabs ── */}
-          <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 4, marginBottom: 24 }}>
+          {/* ── Tabs ── */}
+          <div style={{
+            display: "flex", background: "rgba(255,255,255,0.05)",
+            borderRadius: 10, padding: 4, marginBottom: 24,
+          }}>
             {["signin", "signup"].map(t => (
-              <button
-                key={t}
+              <button key={t}
                 onClick={() => { setTab(t); setMethod("options"); }}
                 style={{
                   flex: 1, padding: "9px 0", borderRadius: 8, border: "none",
@@ -272,21 +302,20 @@ export default function Login() {
             ))}
           </div>
 
-          {/* ── Global loading spinner (redirect check) ── */}
-          {loading && method === "options" && !error ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "24px 0" }}>
+          {/* ── Loading while Firebase resolves ── */}
+          {loading && method === "options" ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "28px 0" }}>
               <Spinner />
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>Signing you in…</div>
             </div>
+
           ) : method === "options" ? (
             <>
               {/* Google */}
-              <button
-                onClick={handleGoogle}
-                disabled={loading}
+              <button onClick={handleGoogle} disabled={loading}
                 style={{
-                  width: "100%", padding: "12px 20px", borderRadius: 12,
-                  background: "#fff", border: "1px solid rgba(255,255,255,0.1)",
+                  width: "100%", padding: "12px 20px", borderRadius: 12, background: "#fff",
+                  border: "1px solid rgba(255,255,255,0.1)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
                   cursor: "pointer", transition: "background 0.2s", marginBottom: 12, fontFamily: "inherit",
                 }}
@@ -303,44 +332,50 @@ export default function Login() {
               </button>
 
               {/* Email */}
-              <button
-                onClick={() => setMethod("email")}
+              <button onClick={() => setMethod("email")}
                 style={{
                   width: "100%", padding: "12px 20px", borderRadius: 12,
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-                  cursor: "pointer", transition: "background 0.2s", marginBottom: 12, color: "#fff",
-                  fontSize: 14, fontWeight: 500, fontFamily: "inherit",
+                  cursor: "pointer", transition: "background 0.2s", marginBottom: 12,
+                  color: "#fff", fontSize: 14, fontWeight: 500, fontFamily: "inherit",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
                 </svg>
                 Continue with Email
               </button>
 
               {/* Phone */}
-              <button
-                onClick={() => setMethod("phone")}
+              <button onClick={() => setMethod("phone")}
                 style={{
                   width: "100%", padding: "12px 20px", borderRadius: 12,
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-                  cursor: "pointer", transition: "background 0.2s", color: "#fff",
-                  fontSize: 14, fontWeight: 500, fontFamily: "inherit",
+                  cursor: "pointer", transition: "background 0.2s",
+                  color: "#fff", fontSize: 14, fontWeight: 500, fontFamily: "inherit",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
                 </svg>
                 Continue with Phone (OTP)
               </button>
 
-              {error && <ErrorBox msg={error} />}
+              {error && <div style={{ marginTop: 12 }}><ErrorBox msg={error} /></div>}
+
+              <p style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: "rgba(255,255,255,0.2)", lineHeight: 1.5 }}>
+                By continuing you agree to our Terms &amp; Privacy Policy
+              </p>
             </>
 
           ) : method === "email" ? (
@@ -349,40 +384,38 @@ export default function Login() {
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 20 }}>
                 {tab === "signup" ? "Create your account" : "Sign in with email"}
               </h3>
-              <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
-              <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+              <Input label="Email" type="email" value={email}
+                onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+              <Input label="Password" type="password" value={password}
+                onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
               {tab === "signup" && (
-                <Input label="Confirm Password" type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="••••••••" />
+                <Input label="Confirm Password" type="password" value={confirmPass}
+                  onChange={e => setConfirmPass(e.target.value)} placeholder="••••••••" />
               )}
               {error && <ErrorBox msg={error} />}
               <PrimaryBtn onClick={handleEmail} loading={loading}>
                 {tab === "signup" ? "Create Account" : "Sign In"}
               </PrimaryBtn>
-
               {tab === "signin" && (
                 <p style={{ textAlign: "center", marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
                   Don't have an account?{" "}
-                  <span style={{ color: "#8B7CF6", cursor: "pointer" }} onClick={() => setTab("signup")}>Sign up</span>
+                  <span style={{ color: "#8B7CF6", cursor: "pointer" }} onClick={() => setTab("signup")}>
+                    Sign up
+                  </span>
                 </p>
               )}
             </>
 
           ) : method === "phone" ? (
             <>
-              <BackBtn onClick={() => { setMethod("options"); setOtpSent(false); setPhone(""); setOtp(""); }} />
+              <BackBtn onClick={() => { setMethod("options"); setOtpSent(false); setPhone("+91"); setOtp(""); }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 20 }}>
                 {otpSent ? "Enter OTP" : "Sign in with phone"}
               </h3>
-
               {!otpSent ? (
                 <>
-                  <Input
-                    label="Phone Number"
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="+91 9876543210"
-                  />
+                  <Input label="Phone Number" type="tel" value={phone}
+                    onChange={e => setPhone(e.target.value)} placeholder="+91 9876543210" />
                   {error && <ErrorBox msg={error} />}
                   <div id="recaptcha-container" />
                   <PrimaryBtn onClick={handleSendOtp} loading={loading}>Send OTP</PrimaryBtn>
@@ -391,35 +424,22 @@ export default function Login() {
                 <>
                   <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 18 }}>
                     OTP sent to <strong style={{ color: "rgba(255,255,255,0.7)" }}>{phone}</strong>.{" "}
-                    <span style={{ color: "#8B7CF6", cursor: "pointer" }} onClick={() => { setOtpSent(false); setOtp(""); }}>Change</span>
+                    <span style={{ color: "#8B7CF6", cursor: "pointer" }}
+                      onClick={() => { setOtpSent(false); setOtp(""); }}>Change</span>
                   </p>
-                  <Input
-                    label="6-Digit OTP"
-                    type="number"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value.slice(0, 6))}
-                    placeholder="• • • • • •"
-                    maxLength={6}
-                  />
+                  <Input label="6-Digit OTP" type="number" value={otp}
+                    onChange={e => setOtp(e.target.value.slice(0, 6))} placeholder="• • • • • •" maxLength={6} />
                   {error && <ErrorBox msg={error} />}
-                  <PrimaryBtn onClick={handleVerifyOtp} loading={loading}>Verify & Continue</PrimaryBtn>
+                  <PrimaryBtn onClick={handleVerifyOtp} loading={loading}>Verify &amp; Continue</PrimaryBtn>
                 </>
               )}
             </>
           ) : null}
-
-          {/* Terms — only shown on options screen */}
-          {method === "options" && (
-            <p style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: "rgba(255,255,255,0.2)", lineHeight: 1.5 }}>
-              By continuing you agree to our Terms &amp; Privacy Policy
-            </p>
-          )}
         </div>
 
-        {/* Back to home */}
+        {/* ── Back to home ── */}
         <div style={{ textAlign: "center", marginTop: 20 }}>
-          <span
-            onClick={() => navigate("/")}
+          <span onClick={() => navigate("/")}
             style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", cursor: "pointer", transition: "color 0.2s" }}
             onMouseEnter={e => (e.target.style.color = "#8B7CF6")}
             onMouseLeave={e => (e.target.style.color = "rgba(255,255,255,0.28)")}
@@ -427,29 +447,8 @@ export default function Login() {
             ← Back to home
           </span>
         </div>
+
       </div>
     </div>
   );
 }
-
-// ── small sub-components ──────────────────────────────────────────────────────
-const ErrorBox = ({ msg }) => (
-  <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.25)", color: "#F09595", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
-    {msg}
-  </div>
-);
-
-const BackBtn = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    style={{
-      background: "none", border: "none", color: "rgba(255,255,255,0.35)",
-      fontSize: 13, cursor: "pointer", marginBottom: 16, padding: 0,
-      display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit",
-    }}
-    onMouseEnter={e => (e.currentTarget.style.color = "#8B7CF6")}
-    onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.35)")}
-  >
-    ← Back
-  </button>
-);
