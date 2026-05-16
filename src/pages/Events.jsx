@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, orderBy, query, doc, getDoc, setDoc } from "firebase/firestore";
-import { useAuth } from "../useAuth";
+import { useAuth } from "../hooks/useAuth";
 import BottomNav from "../components/BottomNav";
 
 const TYPE_COLORS = {

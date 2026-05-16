@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 import BottomNav from "../components/BottomNav";
