@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../firebase";
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -8,7 +8,16 @@ export function useAuth() {
 
   useEffect(() => {
     let unsubscribe = () => {};
+
+    // CRITICAL: Wait for redirect result FIRST
+    // then start listening to auth state
+    // This prevents the null flash that causes the loop
     getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
       .catch(() => {})
       .finally(() => {
         unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -16,6 +25,7 @@ export function useAuth() {
           setLoading(false);
         });
       });
+
     return () => unsubscribe();
   }, []);
 
