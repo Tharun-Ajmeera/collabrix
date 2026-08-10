@@ -1,76 +1,42 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "../firebase";
-import {
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { useAuth } from "../hooks/useAuth";
 
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 export default function Login() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [error, setError] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
 
+  // When user is detected → redirect immediately
   useEffect(() => {
-    // STEP 1: If user is already logged in → go to profile immediately
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigate("/profile", { replace: true });
-      } else {
-        // STEP 2: Check if we just came back from Google redirect
-        getRedirectResult(auth)
-          .then((result) => {
-            if (result?.user) {
-              // Redirect result found → go to profile
-              navigate("/profile", { replace: true });
-            } else {
-              // No user, no redirect → show login button
-              setLoading(false);
-            }
-          })
-          .catch((err) => {
-            console.error("Redirect error:", err);
-            setError("Login failed. Please try again!");
-            setLoading(false);
-          });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (!loading && user) {
+      navigate("/profile", { replace: true });
+    }
+  }, [user, loading]);
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
+    setSigningIn(true);
     setError("");
     try {
       if (isMobile) {
-        // Mobile → redirect flow
         await signInWithRedirect(auth, googleProvider);
-        // Page will reload, useEffect above handles the result
       } else {
-        // Desktop → popup flow
-        const result = await signInWithPopup(auth, googleProvider);
-        if (result?.user) {
-          navigate("/profile", { replace: true });
-        }
+        await signInWithPopup(auth, googleProvider);
       }
     } catch (err) {
       console.error("Login error:", err);
       setError("Login failed. Please try again!");
-      setLoading(false);
+      setSigningIn(false);
     }
   };
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "#08080C",
-      fontFamily: "'Inter', sans-serif",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
+    <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'Inter', sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -101,26 +67,21 @@ export default function Login() {
 
         {/* Card */}
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "36px 32px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 8 }}>
-            Welcome back 👋
-          </h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 8 }}>Welcome back 👋</h2>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 28, lineHeight: 1.6 }}>
             Sign in to find teammates, discover events and watch knowledge reels.
           </p>
 
-          {loading ? (
+          {/* Show spinner while loading or signing in */}
+          {(loading || signingIn) ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 0" }}>
               <div style={{ width: 32, height: 32, border: "3px solid rgba(83,64,200,0.3)", borderTopColor: "#5340C8", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
-                Signing you in...
-              </div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Signing you in...</div>
             </div>
           ) : (
             <>
-              {/* Google Button */}
-              <button
-                onClick={handleGoogleLogin}
-                style={{ width: "100%", padding: "13px 20px", borderRadius: 12, background: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", marginBottom: 16, fontSize: 14, fontWeight: 500, color: "#1a1a1a", transition: "all 0.2s" }}
+              <button onClick={handleGoogleLogin}
+                style={{ width: "100%", padding: "13px 20px", borderRadius: 12, background: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", marginBottom: 16, fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f5f5f5"}
                 onMouseLeave={e => e.currentTarget.style.background = "#fff"}
               >
@@ -133,7 +94,6 @@ export default function Login() {
                 Continue with Google
               </button>
 
-              {/* Error */}
               {error && (
                 <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", color: "#F09595", fontSize: 13, marginBottom: 16, textAlign: "center" }}>
                   {error}
@@ -141,15 +101,12 @@ export default function Login() {
               )}
 
               <div style={{ textAlign: "center" }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
-                  By signing in you agree to our Terms & Privacy Policy
-                </span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>By signing in you agree to our Terms & Privacy Policy</span>
               </div>
             </>
           )}
         </div>
 
-        {/* Back */}
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <span onClick={() => navigate("/")} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", cursor: "pointer" }}
             onMouseEnter={e => e.target.style.color = "#8B7CF6"}
