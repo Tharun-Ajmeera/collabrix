@@ -10,10 +10,24 @@ import Admin from './pages/Admin'
 import Chat from './pages/Chat'
 import Inbox from './pages/Inbox'
 import ProtectedRoute from "./components/ProtectedRoute"
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import ReactGA from 'react-ga4'
+
+// Track page views
+function Analytics() {
+  const location = useLocation()
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: location.pathname })
+  }, [location])
+  return null
+}
+
 
 function App() {
   return (
     <BrowserRouter>
+    <Analytics />
       <Routes>
         {/* Public routes — anyone can view */}
         <Route path="/"            element={<Home />} />
