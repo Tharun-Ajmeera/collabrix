@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "../firebase";
 import { signInWithPopup } from "firebase/auth";
 import { useAuth } from "../hooks/useAuth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,10 +12,24 @@ export default function Login() {
   const [error, setError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
 
-  // When user detected → go to profile
   useEffect(() => {
     if (!loading && user) {
-      navigate("/profile", { replace: true });
+      // Check if user has completed onboarding
+      const checkOnboarding = async () => {
+        try {
+          const snap = await getDoc(doc(db, "users", user.uid));
+          if (!snap.exists() || !snap.data().college) {
+            // New user → go to onboarding
+            navigate("/onboarding", { replace: true });
+          } else {
+            // Existing user → go to profile
+            navigate("/profile", { replace: true });
+          }
+        } catch (err) {
+          navigate("/profile", { replace: true });
+        }
+      };
+      checkOnboarding();
     }
   }, [user, loading]);
 
@@ -21,10 +37,7 @@ export default function Login() {
     setSigningIn(true);
     setError("");
     try {
-      // Use popup for ALL devices — works on mobile too!
-      // Redirect causes issues on Android due to cookie restrictions
       await signInWithPopup(auth, googleProvider);
-      // useAuth detects user → useEffect above navigates to /profile
     } catch (err) {
       console.error("Login error:", err);
       if (err.code === "auth/popup-blocked") {
@@ -39,11 +52,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "#08080C",
-      fontFamily: "'Inter', sans-serif",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
+    <div style={{ minHeight: "100vh", background: "#08080C", fontFamily: "'Inter', sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,9 +83,7 @@ export default function Login() {
 
         {/* Card */}
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "36px 32px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 8 }}>
-            Welcome back 👋
-          </h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#fff", marginBottom: 8 }}>Welcome back 👋</h2>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 28, lineHeight: 1.6 }}>
             Sign in to find teammates, discover events and watch knowledge reels.
           </p>
@@ -88,8 +95,7 @@ export default function Login() {
             </div>
           ) : (
             <>
-              <button
-                onClick={handleGoogleLogin}
+              <button onClick={handleGoogleLogin}
                 style={{ width: "100%", padding: "13px 20px", borderRadius: 12, background: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, cursor: "pointer", marginBottom: 16, fontSize: 14, fontWeight: 500, color: "#1a1a1a", transition: "all 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f5f5f5"}
                 onMouseLeave={e => e.currentTarget.style.background = "#fff"}
@@ -110,9 +116,7 @@ export default function Login() {
               )}
 
               <div style={{ textAlign: "center" }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
-                  By signing in you agree to our Terms & Privacy Policy
-                </span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>By signing in you agree to our Terms & Privacy Policy</span>
               </div>
             </>
           )}

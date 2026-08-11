@@ -13,7 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ReactGA from 'react-ga4'
-
+import Onboarding from './pages/Onboarding'
 // Track page views
 function Analytics() {
   const location = useLocation()
@@ -36,7 +36,8 @@ function App() {
         <Route path="/events/:id"  element={<EventDetail />} />
         <Route path="/teammates"   element={<Teammates />} />
         <Route path="/reels"       element={<Reels />} />
-
+        <Route path="/onboarding" element={<Onboarding />} />
+        
         {/* Protected routes — must be logged in */}
         <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/user/:userId"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
