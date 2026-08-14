@@ -14,6 +14,11 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ReactGA from 'react-ga4'
 import Onboarding from './pages/Onboarding'
+import CreateTeam from './pages/CreateTeam'
+import GroupChat from './pages/GroupChat'
+
+
+
 // Track page views
 function Analytics() {
   const location = useLocation()
@@ -37,6 +42,8 @@ function App() {
         <Route path="/teammates"   element={<Teammates />} />
         <Route path="/reels"       element={<Reels />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/create-team" element={<CreateTeam />} />
+        <Route path="/group/:groupId" element={<GroupChat />} />
         
         {/* Protected routes — must be logged in */}
         <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
