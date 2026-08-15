@@ -17,39 +17,11 @@ function useInView(threshold = 0.15) {
   return [ref, inView];
 }
 
-function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const navigate = useNavigate();
-  const { user } = useAuth();
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setShowMenu(false);
-      navigate("/");
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
-  };
-
-  const NAV_LINKS = [
-    { label: "Events", path: "/events" },
-    { label: "Find Teammates", path: "/teammates" },
-    { label: "Reels", path: "/reels" },
-    { label: "About", path: "#" },
-  ];
-
-  return (
     <Navbar hideBack={true} />
-  );
-}
+  
+ 
 
 function FloatingOrbs() {
   return (
