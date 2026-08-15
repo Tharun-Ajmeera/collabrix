@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { db } from "../firebase";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import BottomNav from "../components/BottomNav";
+import Navbar from "../components/Navbar";
 
 export default function Inbox() {
   const navigate = useNavigate();
@@ -117,26 +118,7 @@ export default function Inbox() {
       `}</style>
 
       {/* Navbar */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 20px", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(8,8,12,0.95)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => navigate("/")}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="16" height="16" viewBox="0 0 46 46" fill="none">
-              <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
-              <circle cx="35" cy="11" r="6.5" fill="#5340C8" opacity="0.55" />
-              <circle cx="35" cy="35" r="6.5" fill="#5340C8" opacity="0.55" />
-              <line x1="17.2" y1="20.5" x2="28.8" y2="13.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-              <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-            </svg>
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 500, color: "#fff" }}>Messages</span>
-        </div>
-
-        {/* Create team button */}
-        <button onClick={() => navigate("/create-team")}
-          style={{ background: "linear-gradient(135deg, #5340C8, #7B6EE0)", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
-          + Create Team
-        </button>
-      </nav>
+      <Navbar />
 
       <div style={{ paddingTop: 60, paddingBottom: 80 }}>
 

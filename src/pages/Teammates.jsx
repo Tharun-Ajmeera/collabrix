@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import BottomNav from "../components/BottomNav";
+import Navbar from "../components/Navbar";
 
 export default function Teammates() {
   const navigate = useNavigate();
@@ -94,31 +95,13 @@ export default function Teammates() {
         input::placeholder { color: rgba(255,255,255,0.25); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        .desktop-nav-btns { display: flex; gap: 12px; }
-        @media (max-width: 768px) { .desktop-nav-btns { display: none; } }
+                @media (max-width: 768px) { .desktop-nav-btns { display: none; } }
         .filters-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -ms-overflow-style: none; scrollbar-width: none; }
         .filters-scroll::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* Navbar */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 2rem", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(8,8,12,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => navigate("/")}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="16" height="16" viewBox="0 0 46 46" fill="none">
-              <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
-              <circle cx="35" cy="11" r="6.5" fill="#5340C8" opacity="0.55" />
-              <circle cx="35" cy="35" r="6.5" fill="#5340C8" opacity="0.55" />
-              <line x1="17.2" y1="20.5" x2="28.8" y2="13.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-              <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-            </svg>
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span> India</span>
-        </div>
-        <div className="desktop-nav-btns">
-          <button onClick={() => navigate("/inbox")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>💬 Messages</button>
-          <button onClick={() => navigate("/profile")} style={{ background: "linear-gradient(135deg, #5340C8, #7B6EE0)", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer" }}>My Profile</button>
-        </div>
-      </nav>
+     <Navbar />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 80px" }}>
 

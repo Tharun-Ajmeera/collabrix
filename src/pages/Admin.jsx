@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import {
   collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp, orderBy, query
 } from "firebase/firestore";
+import Navbar from "../components/Navbar";
 
 // 🔐 Add your Gmail here — only these emails can access admin
 const ADMIN_EMAILS = ["ajmeeratharun55@gmail.com"];
@@ -150,25 +151,7 @@ export default function Admin() {
       `}</style>
 
       {/* Navbar */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 2rem", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(8,8,12,0.95)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="16" height="16" viewBox="0 0 46 46" fill="none">
-              <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
-              <circle cx="35" cy="11" r="6.5" fill="#5340C8" opacity="0.55" />
-              <circle cx="35" cy="35" r="6.5" fill="#5340C8" opacity="0.55" />
-              <line x1="17.2" y1="20.5" x2="28.8" y2="13.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-              <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-            </svg>
-          </div>
-          <span style={{ fontSize: 16, fontWeight: 500, color: "#fff" }}>Collab<span style={{ color: "#8B7CF6" }}>rix</span> India</span>
-          <div style={{ background: "rgba(83,64,200,0.2)", border: "1px solid rgba(139,124,246,0.4)", color: "#A899F0", fontSize: 10, fontWeight: 600, padding: "2px 10px", borderRadius: 999, marginLeft: 4 }}>ADMIN</div>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => navigate("/events")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", padding: "7px 16px", borderRadius: 999, fontSize: 12, cursor: "pointer" }}>View Events →</button>
-          <button onClick={() => navigate("/")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", padding: "7px 16px", borderRadius: 999, fontSize: 12, cursor: "pointer" }}>Home</button>
-        </div>
-      </nav>
+      <Navbar />
 
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "80px 24px 60px" }}>
 

@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 import BottomNav from "../components/BottomNav";
+import Navbar from "../components/Navbar";
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
@@ -46,108 +47,7 @@ function Navbar() {
   ];
 
   return (
-    <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-      padding: "0 2rem", height: "60px",
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      background: scrolled ? "rgba(8,8,12,0.85)" : "transparent",
-      backdropFilter: scrolled ? "blur(16px)" : "none",
-      borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
-      transition: "all 0.4s ease",
-    }}>
-
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: "#EEF2FF", border: "0.5px solid #D0C8F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="18" height="18" viewBox="0 0 46 46" fill="none">
-            <circle cx="11" cy="23" r="6.5" fill="#5340C8" />
-            <circle cx="35" cy="11" r="6.5" fill="#5340C8" opacity="0.55" />
-            <circle cx="35" cy="35" r="6.5" fill="#5340C8" opacity="0.55" />
-            <line x1="17.2" y1="20.5" x2="28.8" y2="13.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-            <line x1="17.2" y1="25.5" x2="28.8" y2="32.5" stroke="#5340C8" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-          </svg>
-        </div>
-        <span style={{ fontSize: 18, fontWeight: 500, color: "#fff", letterSpacing: "-0.4px" }}>
-          Collab<span style={{ color: "#8B7CF6" }}>rix</span> India
-        </span>
-      </div>
-
-      {/* Desktop Nav Links */}
-      <div className="nav-links-desktop" style={{ display: "flex", alignItems: "center", gap: 32 }}>
-        {NAV_LINKS.map((link) => (
-          <span key={link.label} onClick={() => navigate(link.path)}
-            style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer", transition: "color 0.2s" }}
-            onMouseEnter={e => e.target.style.color = "#fff"}
-            onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}
-          >{link.label}</span>
-        ))}
-      </div>
-
-      {/* Right Side */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {user ? (
-          <div style={{ position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowMenu(!showMenu)}>
-              <span className="hide-mobile" style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
-                {user.displayName?.split(" ")[0]}
-              </span>
-              <img src={user.photoURL} alt={user.displayName}
-                style={{ width: 34, height: 34, borderRadius: "50%", border: "2px solid rgba(139,124,246,0.5)" }} />
-            </div>
-            {showMenu && (
-              <div style={{
-                position: "absolute", top: 44, right: 0, minWidth: 200,
-                background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 12, padding: 8, zIndex: 200,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-              }}>
-                <div style={{ padding: "8px 12px", fontSize: 12, color: "rgba(255,255,255,0.3)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>{user.email}</div>
-                {[
-                  { icon: "👤", label: "My Profile", path: "/profile" },
-                  { icon: "🎪", label: "My Events", path: "/events" },
-                  { icon: "👥", label: "Find Teammates", path: "/teammates" },
-                ].map(item => (
-                  <div key={item.label} onClick={() => { navigate(item.path); setShowMenu(false); }}
-                    style={{ padding: "10px 12px", fontSize: 13, color: "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >{item.icon} {item.label}</div>
-                ))}
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4, paddingTop: 4 }}>
-                  <div onClick={handleLogout}
-                    style={{ padding: "10px 12px", fontSize: 13, color: "#F09595", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(226,75,74,0.1)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >🚪 Log out</div>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <span className="hide-mobile" onClick={() => navigate("/login")}
-              style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", cursor: "pointer", transition: "color 0.2s" }}
-              onMouseEnter={e => e.target.style.color = "#fff"}
-              onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}
-            >Log in</span>
-            <a href="#signup" className="hide-mobile" style={{
-              fontSize: 13, fontWeight: 500, color: "#fff", textDecoration: "none",
-              padding: "8px 18px", borderRadius: 999,
-              background: "linear-gradient(135deg, #5340C8, #7B6EE0)",
-              border: "1px solid rgba(139,124,246,0.4)", transition: "opacity 0.2s",
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-            >Get early access</a>
-            {/* Mobile login button */}
-            <button className="show-mobile" onClick={() => navigate("/login")} style={{
-              background: "linear-gradient(135deg, #5340C8, #7B6EE0)", border: "none",
-              color: "#fff", padding: "8px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer",
-            }}>Join free</button>
-          </>
-        )}
-      </div>
-    </nav>
+    <Navbar hideBack={true} />
   );
 }
 
