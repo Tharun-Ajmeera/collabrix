@@ -479,7 +479,12 @@ export default function Profile() {
         {/* Profile Header */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 24, padding: "40px 0 28px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexWrap: "wrap" }}>
           {displayPhoto ? (
-            <img src={displayPhoto} alt={displayName} style={{ width: 90, height: 90, borderRadius: "50%", border: "3px solid rgba(139,124,246,0.4)", flexShrink: 0 }} />
+            <img 
+              src={displayPhoto} 
+              alt={displayName}
+              referrerPolicy="no-referrer"
+            style={{ width: 90, height: 90, borderRadius: "50%", border: "3px solid rgba(139,124,246,0.4)", flexShrink: 0, objectFit: "cover" }} 
+/>
           ) : (
             <div style={{ width: 90, height: 90, borderRadius: "50%", background: "linear-gradient(135deg, #5340C8, #8B7CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 600, color: "#fff", flexShrink: 0 }}>
               {displayName?.charAt(0) || "?"}

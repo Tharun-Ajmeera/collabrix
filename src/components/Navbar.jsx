@@ -135,7 +135,9 @@ export default function Navbar({ title, hideBack = false, rightContent = null })
                 onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(139,124,246,0.4)"}
               >
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName} style={{ width: 34, height: 34, borderRadius: "50%", display: "block" }} />
+                  <img src={user.photoURL} alt={user.displayName}
+                    referrerPolicy="no-referrer"
+                    style={{ width: 34, height: 34, borderRadius: "50%", display: "block" }} />
                 ) : (
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#5340C8,#8B7CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>
                     {user.displayName?.charAt(0)}
