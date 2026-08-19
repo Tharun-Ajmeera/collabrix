@@ -8,7 +8,7 @@ import Navbar from "../components/Navbar";
 
 const SUGGESTED_SKILLS = ["React", "Python", "Node.js", "Flutter", "Figma", "UI/UX", "Machine Learning", "DSA", "Web3", "Solidity", "TypeScript", "Docker", "AWS", "MongoDB", "Java", "C++", "Data Science", "NLP", "Cybersecurity", "Next.js", "Vue.js", "Angular", "Swift", "Kotlin", "Unity", "Blender", "AR/VR", "Robotics", "IoT", "Rust", "Go", "DevOps"];
 const SUGGESTED_DOMAINS = ["AI / ML", "Full Stack", "Web3 / Blockchain", "UI / UX", "Mobile Dev", "Cybersecurity", "Data Science", "Open Innovation", "FinTech", "EdTech", "HealthTech", "Game Dev", "AR / VR", "Robotics", "IoT", "Cloud Computing", "DevOps", "Social Impact"];
-const SUGGESTED_CITIES = ["Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai", "Pune", "Kolkata", "Jaipur", "Ahmedabad", "Coimbatore", "Vellore", "Mysuru", "Nagpur", "Bhopal", "Lucknow", "Kochi", "Visakhapatnam", "Indore", "Chandigarh", "Shivamogga", "Mangalore", "Manipal", "Warangal", "Tirupati", "Online"];
+const SUGGESTED_CITIES = ["All over India", "Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai", "Pune", "Kolkata", "Jaipur", "Ahmedabad", "Coimbatore", "Vellore", "Mysuru", "Nagpur", "Bhopal", "Lucknow", "Kochi", "Visakhapatnam", "Indore", "Chandigarh", "Shivamogga", "Mangalore", "Manipal", "Warangal", "Tirupati", "Online"];
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Postgraduate", "Alumni"];
 const TYPE_ICONS = { "Hackathon": "🏆", "Startup Meet": "🚀", "Tech Talk": "🎤", "Workshop": "🛠", "College Fest": "🎓", "Coding Contest": "💻", "Internship Drive": "💼" };
 
@@ -562,7 +562,7 @@ export default function Profile() {
               <div><label>Year</label><select value={tempData.year} onChange={e => setTempData(p => ({ ...p, year: e.target.value }))}><option value="">Select year</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
             </div>
             <div style={{ marginBottom: 16 }}><label>Bio</label><textarea placeholder="Tell other students about yourself..." value={tempData.bio} onChange={e => setTempData(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ resize: "vertical" }} /></div>
-            <div style={{ marginBottom: 20 }}><label>Hackathons Won</label><input type="number" min="0" placeholder="0" value={tempData.hackathonsWon || ""} onChange={e => setTempData(p => ({ ...p, hackathonsWon: parseInt(e.target.value) || 0 }))} style={{ width: 120 }} /></div>
+           
             <div style={{ fontSize: 13, fontWeight: 600, color: "#8B7CF6", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Social Links</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 20 }}>
               <div><label>GitHub URL</label><input type="url" placeholder="https://github.com/username" value={tempData.github || ""} onChange={e => setTempData(p => ({ ...p, github: e.target.value }))} /></div>

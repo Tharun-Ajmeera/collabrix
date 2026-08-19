@@ -33,6 +33,8 @@ export default function Events() {
   const [types, setTypes] = useState(["All"]);
   const [domains, setDomains] = useState(["All"]);
   const [toast, setToast] = useState("");
+  const [cityFilter, setCityFilter] = useState("All");
+  const [cities, setCities] = useState(["All"]);
 
   // Fetch events from Firestore
   useEffect(() => {
@@ -44,8 +46,10 @@ export default function Events() {
         setEvents(data);
         const allTypes = [...new Set(data.map(e => e.type).filter(Boolean))];
         const allDomains = [...new Set(data.map(e => e.domain).filter(Boolean))];
+        const allCities = [...new Set(data.map(e => e.city).filter(Boolean))];
         setTypes(["All", ...allTypes]);
         setDomains(["All", ...allDomains]);
+        setCities(["All", ...allCities]);
       } catch (err) {
         console.error("Error fetching events:", err);
       }
@@ -108,6 +112,8 @@ export default function Events() {
     const matchType = typeFilter === "All" || e.type === typeFilter;
     const matchMode = modeFilter === "All" || e.mode === modeFilter;
     const matchDomain = domainFilter === "All" || e.domain === domainFilter;
+    const matchCity = cityFilter === "All" || e.city === cityFilter;
+
     return matchSearch && matchType && matchMode && matchDomain;
   });
 
@@ -204,6 +210,17 @@ export default function Events() {
                 ))}
               </div>
             )}
+
+            {/* City filter */}
+            {cities.length > 1 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 44 }}>City:</span>
+              {cities.map(c => (
+            <button key={c} className={`filter-btn ${cityFilter === c ? "active" : ""}`} onClick={() => setCityFilter(c)}>{c}</button>
+               ))}
+            </div>
+            )}
+
           </div>
         )}
 
