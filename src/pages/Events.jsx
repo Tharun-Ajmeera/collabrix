@@ -106,16 +106,16 @@ export default function Events() {
   };
 
   const filtered = events.filter(e => {
-    const matchSearch = e.name?.toLowerCase().includes(search.toLowerCase()) ||
-      e.organiser?.toLowerCase().includes(search.toLowerCase()) ||
-      e.description?.toLowerCase().includes(search.toLowerCase());
-    const matchType = typeFilter === "All" || e.type === typeFilter;
-    const matchMode = modeFilter === "All" || e.mode === modeFilter;
-    const matchDomain = domainFilter === "All" || e.domain === domainFilter;
-    const matchCity = cityFilter === "All" || e.city === cityFilter;
-
-    return matchSearch && matchType && matchMode && matchDomain;
-  });
+  const matchSearch =
+    e.name?.toLowerCase().includes(search.toLowerCase()) ||
+    e.organiser?.toLowerCase().includes(search.toLowerCase()) ||
+    e.description?.toLowerCase().includes(search.toLowerCase());
+  const matchType = typeFilter === "All" || e.type === typeFilter;
+  const matchMode = modeFilter === "All" || e.mode === modeFilter;
+  const matchDomain = domainFilter === "All" || e.domain === domainFilter;
+  const matchCity = cityFilter === "All" || e.city === cityFilter;
+  return matchSearch && matchType && matchMode && matchDomain && matchCity;
+});
 
   const getColor = (type) => TYPE_COLORS[type] || "#5340C8";
 
