@@ -467,7 +467,7 @@ export default function Profile() {
       {/* Navbar */}
       <Navbar />
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "80px 24px 60px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "80px 24px 40px" }}>
 
         {/* Saved Toast */}
         {savedToast && (
@@ -514,7 +514,7 @@ export default function Profile() {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
               {isOwnProfile ? (
                 <>
                   <button onClick={() => { setEditing(!editing); setTempData(profileData); }}
@@ -584,7 +584,7 @@ export default function Profile() {
         {/* Tabs */}
         {!editing && (
           <>
-            <div style={{ display: "flex", gap: 4, padding: "20px 0", borderBottom: "1px solid rgba(255,255,255,0.07)", overflowX: "auto" }}>
+            <div style={{ display: "flex", gap: 4, padding: "20px 0", borderBottom: "1px solid rgba(255,255,255,0.07)", overflowX: "auto", msOverflowStyle: "none", scrollbarWidth: "none" }}>
               {TABS.map(tab => (
                 <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)}
                   style={{ background: activeTab === tab ? "rgba(83,64,200,0.2)" : "transparent", color: activeTab === tab ? "#A899F0" : "rgba(255,255,255,0.4)", border: activeTab === tab ? "1px solid rgba(139,124,246,0.3)" : "1px solid transparent" }}>
